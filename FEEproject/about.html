@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About TaskNova - Our Team</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* SHARED GLOBAL & NAVBAR STYLES (From index.html) */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            color: #e6edf3;
+            background: linear-gradient(rgba(13, 17, 23, 0.85), rgba(13, 17, 23, 0.85)),
+                        url('https://t4.ftcdn.net/jpg/07/05/56/21/360_F_705562152_WFSrWPNw6TqrxQ3MJzWzaZ1oeH3jLtUu.jpg');
+            background-size: cover; background-position: center; background-attachment: fixed;
+            min-height: 100vh; overflow-x: hidden;
+        }
+
+        .navbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 50px; background: rgba(22, 27, 34, 0.95);
+            backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 100;
+            border-bottom: 1px solid rgba(88, 166, 255, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .navbar h2 {
+            color: #58a6ff; font-size: 28px; font-weight: 700;
+            text-shadow: 0 0 20px rgba(88, 166, 255, 0.5); margin: 0;
+        }
+
+        .navbar ul { display: flex; gap: 20px; list-style: none; margin: 0; padding: 0; }
+
+        .navbar li {
+            padding: 12px 20px; border-radius: 12px; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative;
+            overflow: hidden; border: 2px solid transparent;
+        }
+
+        .navbar li::before {
+            content: ''; position: absolute; bottom: 0; left: -100%; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, #58a6ff, transparent);
+            transition: left 0.3s ease;
+        }
+
+        .navbar li:hover::before, .navbar li.active::before { left: 0; }
+
+        .navbar li:hover, .navbar li.active {
+            background: rgba(88, 166, 255, 0.2); color: #58a6ff;
+            transform: translateY(-3px); box-shadow: 0 10px 30px rgba(88, 166, 255, 0.3);
+        }
+
+        .navbar a { text-decoration: none; color: inherit; font-weight: 500; }
+
+        /* ABOUT PAGE SPECIFIC STYLES */
+        .main-content {
+            max-width: 1200px; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; min-height: 100vh;
+        }
+
+        .hero { text-align: center; padding: 60px 20px; max-width: 800px; margin: 0 auto 40px; }
+        .hero h1 { font-size: clamp(36px, 6vw, 52px); color: #58a6ff; margin-bottom: 20px; font-weight: 700; }
+        .hero p { font-size: 20px; color: #8b949e; line-height: 1.7; }
+
+        .team-section {
+            background: rgba(22, 27, 34, 0.95); border-radius: 24px; padding: 50px;
+            margin-bottom: 40px; box-shadow: 0 30px 70px rgba(0,0,0,0.6); border: 1px solid rgba(88, 166, 255, 0.2);
+            backdrop-filter: blur(20px);
+        }
+        .team-section h2 { color: #58a6ff; font-size: clamp(28px, 5vw, 40px); text-align: center; margin-bottom: 40px; font-weight: 700; }
+        .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px; }
+        
+        .team-card {
+            background: rgba(33, 38, 45, 0.8); padding: 40px 30px; border-radius: 20px; text-align: center;
+            border: 1px solid rgba(88, 166, 255, 0.2); transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(15px); opacity: 0; transform: translateY(60px);
+            display: flex; flex-direction: column;
+        }
+        .team-card.animate { opacity: 1; transform: translateY(0); }
+        .team-card:nth-child(1).animate { transition-delay: 0.1s; }
+        .team-card:nth-child(2).animate { transition-delay: 0.2s; }
+        .team-card:nth-child(3).animate { transition-delay: 0.3s; }
+        .team-card:hover {
+            transform: translateY(-15px) scale(1.03); background: rgba(48, 54, 61, 0.95);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5); border-color: rgba(88, 166, 255, 0.4);
+        }
+        
+        /* REAL PHOTO AVATAR STYLES */
+        .avatar-container {
+            position: relative; width: 110px; height: 110px; margin: 0 auto 25px;
+        }
+        .team-photo {
+            width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+            border: 3px solid #58a6ff; box-shadow: 0 12px 35px rgba(88, 166, 255, 0.4);
+            transition: all 0.4s ease;
+        }
+        .team-card:hover .team-photo { transform: scale(1.08); border-color: #1f6feb; }
+        
+        .avatar-badge {
+            position: absolute; bottom: 0; right: 0; background: #0d1117;
+            border-radius: 50%; width: 34px; height: 34px; display: flex;
+            align-items: center; justify-content: center; font-size: 18px;
+            border: 2px solid #58a6ff; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .team-card h3 { color: #58a6ff; font-size: 24px; margin-bottom: 12px; font-weight: 700; }
+        .team-card .role { color: #8b949e; font-size: 16px; margin-bottom: 20px; font-weight: 500; }
+        .team-card p { color: #e6edf3; line-height: 1.6; flex-grow: 1; margin-bottom: 25px; }
+
+        /* INTERACTIVE ABOUT BUTTON STYLES */
+        .about-btn-container {
+            position: relative; width: 100%; height: 45px; border-radius: 12px;
+            background: rgba(88, 166, 255, 0.1); border: 1px solid rgba(88, 166, 255, 0.3);
+            overflow: hidden; transition: all 0.4s ease; cursor: pointer;
+        }
+        
+        .about-text {
+            position: absolute; width: 100%; height: 100%; display: flex;
+            align-items: center; justify-content: center; color: #58a6ff; font-weight: 600;
+            transition: all 0.4s ease;
+        }
+
+        .hidden-nav {
+            position: absolute; width: 100%; height: 100%; display: flex;
+            align-items: center; justify-content: center; gap: 10px;
+            opacity: 0; transform: translateY(20px); transition: all 0.4s ease;
+        }
+
+        .about-btn-container:hover { border-color: #58a6ff; background: rgba(33, 38, 45, 0.9); }
+        .about-btn-container:hover .about-text { opacity: 0; transform: translateY(-20px); }
+        .about-btn-container:hover .hidden-nav { opacity: 1; transform: translateY(0); }
+
+        /* Transparent Buttons with Icons */
+        .transparent-btn {
+            display: flex; align-items: center; gap: 6px; /* Space between icon and text */
+            background: transparent; color: #e6edf3; padding: 6px 14px; border-radius: 8px;
+            border: 1px solid rgba(230, 237, 243, 0.3); font-size: 14px; font-weight: 500;
+            text-decoration: none; cursor: pointer; transition: all 0.3s ease;
+        }
+        .transparent-btn svg { width: 16px; height: 16px; fill: currentColor; }
+        .transparent-btn:hover {
+            background: rgba(88, 166, 255, 0.2); border-color: #58a6ff; color: #58a6ff;
+            transform: scale(1.05);
+        }
+
+        /* OTHER INFO STYLES */
+        .project-info {
+            background: rgba(22, 27, 34, 0.95); border-radius: 24px; padding: 50px; text-align: center;
+            box-shadow: 0 30px 70px rgba(0,0,0,0.6); border: 1px solid rgba(88, 166, 255, 0.2); backdrop-filter: blur(20px);
+        }
+        .project-info h2 { color: #58a6ff; font-size: clamp(28px, 5vw, 36px); margin-bottom: 30px; }
+        .project-info ul {
+            text-align: left; max-width: 700px; margin: 0 auto 40px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; list-style: none; padding: 0;
+        }
+        .project-info li {
+            font-size: 16px; color: #e6edf3; padding: 18px 25px; background: rgba(33, 38, 45, 0.6);
+            border-radius: 12px; position: relative; cursor: pointer; transition: all 0.3s ease; border-left: 4px solid transparent;
+        }
+        .project-info li:hover { background: rgba(88, 166, 255, 0.1); border-left-color: #58a6ff; transform: translateX(10px); }
+        
+        .cta-button {
+            display: inline-block; background: linear-gradient(135deg, #58a6ff, #1f6feb); color: #0d1117;
+            padding: 18px 36px; border-radius: 16px; text-decoration: none; font-weight: 700; font-size: 18px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 12px 35px rgba(88, 166, 255, 0.4);
+            background-size: 300% 300%; animation: gradientShift 3s ease infinite;
+        }
+        .cta-button:hover { animation-play-state: paused; transform: translateY(-4px) scale(1.05); box-shadow: 0 20px 45px rgba(88, 166, 255, 0.6); }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @media (max-width: 768px) {
+            .navbar { padding: 15px 20px; }
+            .navbar h2 { font-size: 24px; }
+            .team-section, .project-info { padding: 30px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <h2>🚀 TaskNova</h2>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="tasks.html">Manage Tasks</a></li>
+            <li class="active"><a href="about.html">About</a></li>
+        </ul>
+    </nav>
+
+    <div class="main-content">
+        <section class="hero">
+            <h1>Meet Our Team</h1>
+            <p>Chitkara University students who built TaskNova from scratch for our Fee Group Project</p>
+        </section>
+
+        <section class="team-section">
+            <h2>👥 Our Developers</h2>
+            <div class="team-grid">
+                
+                <div class="team-card">
+                    <div class="avatar-container">
+                        <img src="" alt="Garv Goel" class="team-photo">
+                        <div class="avatar-badge">👨‍💻</div>
+                    </div>
+                    
+                    <h3>GARV GOEL</h3>
+                    <div class="role">TEAM LEADER & Innovator</div>
+                    <p>Created the overall project vision and led the development process. Passionate about modern UI/UX and productivity tools.</p>
+                    
+                    <div class="about-btn-container">
+                        <span class="about-text">About</span>
+                        <div class="hidden-nav">
+                            <a href="https://www.linkedin.com/in/garv-goel-32689438b/" target="_blank" class="transparent-btn">
+                                <svg viewBox="0 0 16 16"><path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542v7.225h2.401zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193v.025h-.016a5.54 5.54 0 0 1 .016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225h2.4z"/></svg>
+                                LinkedIn
+                            </a>
+                            <button class="transparent-btn" onclick="showMemberInfo('GARV GOEL', '2510993068', '2G3', 'B.Tech CSE AiML')">
+                                <svg viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg>
+                                Info
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="team-card">
+                    <div class="avatar-container">
+                        <img src="" alt="Ryan Sharma" class="team-photo">
+                        <div class="avatar-badge">🔧</div>
+                    </div>
+                    
+                    <h3>Ryan Sharma</h3>
+                    <div class="role">HTML & CSS Developer</div>
+                    <p>Mastered responsive layouts and glassmorphism effects. Ensures pixel-perfect design across all devices.</p>
+                    
+                    <div class="about-btn-container">
+                        <span class="about-text">About</span>
+                        <div class="hidden-nav">
+                            <a href="https://www.linkedin.com/in/ryan-sharma-bb459b2a2/" target="_blank" class="transparent-btn">
+                                <svg viewBox="0 0 16 16"><path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542v7.225h2.401zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193v.025h-.016a5.54 5.54 0 0 1 .016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225h2.4z"/></svg>
+                                LinkedIn
+                            </a>
+                            <button class="transparent-btn" onclick="showMemberInfo('Ryan Sharma',  '2510992928', '2G3', 'B.Tech CSE AiML')">
+                                <svg viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg>
+                                Info
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="team-card">
+                    <div class="avatar-container">
+                        <img src="" alt="Kartik Thakur" class="team-photo">
+                        <div class="avatar-badge">🎨</div>
+                    </div>
+                    
+                    <h3>KARTIK THAKUR</h3>
+                    <div class="role">JavaScript Developer</div>
+                    <p>Built the core task management engine with advanced features like drag-and-drop, real-time search, and smooth animations.</p>
+                    
+                    <div class="about-btn-container">
+                        <span class="about-text">About</span>
+                        <div class="hidden-nav">
+                            <a href="https://www.linkedin.com/in/union-create-7b8a493b6/" target="_blank" class="transparent-btn">
+                                <svg viewBox="0 0 16 16"><path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542v7.225h2.401zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193v.025h-.016a5.54 5.54 0 0 1 .016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225h2.4z"/></svg>
+                                LinkedIn
+                            </a>
+                            <button class="transparent-btn" onclick="showMemberInfo('KARTIK THAKUR',  '2510993009', '2G3', 'B.Tech CSE AiML')">
+                                <svg viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/></svg>
+                                Info
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="project-info">
+            <h2>🚀 TaskNova Features</h2>
+            <ul>
+                <li>✨ Modern glassmorphism dark theme with backdrop blur effects</li>
+                <li>🔒 Secure delete confirmation with custom modals</li>
+                <li>⚡ Real-time search + smart filtering (All/Completed/Pending)</li>
+                <li>📊 Animated progress tracking with stats</li>
+                <li>💾 LocalStorage persistence across sessions</li>
+                <li>📱 Fully responsive across all devices</li>
+                <li>🎭 Microinteractions & smooth animations</li>
+                <li>✏️ Inline task editing with double-click</li>
+            </ul>
+            <br><br>
+            <a href="tasks.html" class="cta-button">Try TaskNova Now →</a>
+        </section>
+    </div>
+
+    <script>
+        // Animate team cards on scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.querySelectorAll('.team-card').forEach((card, index) => {
+                        setTimeout(() => card.classList.add('animate'), index * 150);
+                    });
+                }
+            });
+        });
+        document.querySelector('.team-section')?.addEventListener('mouseenter', () => {
+            observer.observe(document.querySelector('.team-section'));
+        });
+
+        // Function to trigger the Info Modal
+        function showMemberInfo(name, roll, group, dept) {
+            const modal = document.createElement("div");
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8);
+                display: flex; justify-content: center; align-items: center; z-index: 1000;
+                opacity: 0; transition: opacity 0.3s ease;
+            `;
+            modal.innerHTML = `
+                <div style="
+                    background: rgba(22, 27, 34, 0.95); border-radius: 20px; padding: 40px;
+                    border: 1px solid rgba(88, 166, 255, 0.4); backdrop-filter: blur(20px);
+                    text-align: center; max-width: 400px; width: 90%; box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+                    transform: scale(0.8); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                " id="modalBox">
+                    <h3 style="color: #58a6ff; margin-bottom: 25px; font-size: 26px;">${name}</h3>
+                    <div style="text-align: left; background: rgba(13, 17, 23, 0.8); padding: 20px; border-radius: 12px; margin-bottom: 25px; color: #e6edf3; font-size: 16px;">
+                        <p style="margin-bottom: 12px;"><strong>Roll No.</strong> <span style="float: right; color: #58a6ff;">${roll}</span></p>
+                        <p style="margin-bottom: 12px;"><strong>Group</strong> <span style="float: right; color: #58a6ff;">${group}</span></p>
+                        <p style="margin: 0;"><strong>Department</strong> <span style="float: right; color: #58a6ff;">${dept}</span></p>
+                    </div>
+                    <button onclick="closeModal(this)" style="
+                        padding: 12px 30px; background: linear-gradient(135deg, #58a6ff, #1f6feb);
+                        color: #0d1117; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 16px;
+                    ">Close</button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Small delay to allow CSS transitions to trigger
+            requestAnimationFrame(() => {
+                modal.style.opacity = "1";
+                document.getElementById('modalBox').style.transform = "scale(1)";
+            });
+        }
+
+        // Function to close the modal with animation
+        function closeModal(btn) {
+            const modal = btn.closest('div').parentElement;
+            modal.style.opacity = "0";
+            document.getElementById('modalBox').style.transform = "scale(0.8)";
+            setTimeout(() => modal.remove(), 300);
+        }
+    </script>
+</body>
+</html>
