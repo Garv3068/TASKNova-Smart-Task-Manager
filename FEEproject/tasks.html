@@ -9,7 +9,6 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
-        /* SHARED GLOBAL & NAVBAR STYLES */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body {
@@ -116,7 +115,6 @@
         .empty-state h3 { color: #58a6ff; font-size: 28px; margin-bottom: 15px; }
         .empty-state-icon { font-size: 64px; margin-bottom: 20px; opacity: 0.5; }
 
-        /* ALL DONE MESSAGE STYLES */
         .all-done-msg {
             background: linear-gradient(135deg, #2ea043, #238636);
             color: white;
@@ -128,8 +126,8 @@
             font-weight: 700;
             box-shadow: 0 10px 30px rgba(46, 160, 67, 0.4);
             display: none; 
-            opacity: 1; /* Keep default opacity at 1 so pop-in works */
-            transition: opacity 0.5s ease; /* Ensure we transition the opacity */
+            opacity: 1; 
+            transition: opacity 0.5s ease; 
             animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
@@ -208,9 +206,8 @@
     <script>
         let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
         let editingId = null;
-        let hasCelebrated = false; // Tracks if the sprinkles have been fired
-        let messageTimeout; // Stores the timeout so we can clear it if needed
-
+        let hasCelebrated = false; 
+        let messageTimeout; 
         const taskInput = document.getElementById("taskInput");
         const addTaskBtn = document.getElementById("addTask");
         const taskList = document.getElementById("taskList");
@@ -222,7 +219,6 @@
         const emptyState = document.getElementById("emptyState");
         const allDoneMsg = document.getElementById("allDoneMsg"); 
 
-        // Event Listeners
         addTaskBtn.addEventListener("click", addOrUpdateTask);
         taskInput.addEventListener("keypress", (e) => { if (e.key === "Enter") addOrUpdateTask(); });
         searchInput.addEventListener("input", handleSearch);
@@ -280,7 +276,6 @@
                     li.classList.add("completed");
                 }
 
-                // Double-click to edit
                 taskText.addEventListener("dblclick", () => {
                     if (!task.completed) {
                         taskText.contentEditable = true;
@@ -308,7 +303,6 @@
                     }
                 });
 
-                // Toggle complete when clicking
                 li.addEventListener("click", (e) => {
                     if (!e.target.closest('button') && !taskText.isContentEditable) {
                         task.completed = !task.completed;
@@ -401,7 +395,6 @@
             renderTasks(filtered);
         }
 
-        // CONFETTI SPRINKLE FUNCTION
         function fireConfetti() {
             var duration = 3 * 1000;
             var animationEnd = Date.now() + duration;
@@ -431,12 +424,10 @@
             const percent = total === 0 ? 0 : (completed / total) * 100;
             progressBar.style.width = percent + "%";
 
-            // LOGIC FOR FADING MESSAGE & SPRINKLES
             if (total > 0 && total === completed) {
-                // Only show and fire if we haven't celebrated yet
                 if (!hasCelebrated) {
                     allDoneMsg.style.display = "block";
-                    allDoneMsg.style.opacity = "1"; // Reset opacity so it's fully visible
+                    allDoneMsg.style.opacity = "1"; 
                     
                     fireConfetti();
                     hasCelebrated = true; 
@@ -444,21 +435,19 @@
                     clearTimeout(messageTimeout); 
                     messageTimeout = setTimeout(() => {
                         
-                        // FADE OUT EFFECT
                         allDoneMsg.style.opacity = "0"; 
                         
-                        // Wait exactly 0.5s (the time of our CSS transition) before actually hiding the div
                         setTimeout(() => {
                             if (allDoneMsg.style.opacity === "0") {
                                 allDoneMsg.style.display = "none";
                             }
                         }, 500);
                         
-                    }, 3500); // Wait 3.5 seconds before starting the fade out
+                    }, 3500); 
                 }
             } else {
                 allDoneMsg.style.display = "none";
-                hasCelebrated = false; // Reset if tasks are unchecked or new ones added
+                hasCelebrated = false; 
                 clearTimeout(messageTimeout); 
             }
         }
@@ -467,7 +456,6 @@
             localStorage.setItem("tasks", JSON.stringify(tasks));
         }
 
-        // Initial render
         renderTasks();
     </script>
 </body>
