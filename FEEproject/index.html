@@ -25,7 +25,6 @@ min-height:100vh;
 overflow-x:hidden;
 }
 
-/* ENHANCED NAVBAR WITH GLOW EFFECT */
 .navbar{
 display:flex;
 justify-content:space-between;
@@ -168,7 +167,6 @@ opacity:1;
 transform:translateY(0);
 }
 
-/* ANIMATED GRADIENT BUTTONS */
 .cta-buttons{
 display:flex;
 gap:20px;
@@ -219,7 +217,6 @@ border-color:#58a6ff;
 transform:translateY(-4px);
 }
 
-/* ENHANCED STATS */
 .hero-stats{
 display:flex;
 gap:50px;
@@ -475,7 +472,6 @@ i++;
 setTimeout(typeText,50);
 } else {
 typingComplete = true;
-// HIDE CURSOR AFTER TYPING COMPLETES
 document.querySelector('.cursor').style.opacity = '0';
 document.querySelector('.cursor').style.transition = 'opacity 0.5s ease';
 setTimeout(() => {
@@ -484,12 +480,10 @@ desc.classList.add("show");
 }
 }
 
-// START TYPING AFTER PAGE LOAD
 window.addEventListener("load",()=>{
 setTimeout(typeText,800);
 });
 
-// SMOOTH SCROLLING
 document.querySelectorAll('a[href^="#"]').forEach(anchor=>{
 anchor.addEventListener('click',function(e){
 e.preventDefault();
@@ -500,7 +494,6 @@ target.scrollIntoView({behavior:'smooth'});
 });
 });
 
-// FEATURE CARD ANIMATIONS
 const observer=new IntersectionObserver((entries)=>{
 entries.forEach(entry=>{
 if(entry.isIntersecting){
@@ -510,7 +503,6 @@ entry.target.classList.add("animate");
 });
 document.querySelectorAll(".feature-card").forEach(card=>observer.observe(card));
 
-// PARALLAX EFFECT ON HERO
 window.addEventListener('mousemove', (e) => {
 const hero = document.querySelector('.hero');
 const rect = hero.getBoundingClientRect();
