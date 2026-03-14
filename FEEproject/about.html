@@ -6,7 +6,7 @@
     <title>About TaskNova - Our Team</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* SHARED GLOBAL & NAVBAR STYLES (From index.html) */
+        
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body {
@@ -54,7 +54,7 @@
 
         .navbar a { text-decoration: none; color: inherit; font-weight: 500; }
 
-        /* ABOUT PAGE SPECIFIC STYLES */
+        
         .main-content {
             max-width: 1200px; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; min-height: 100vh;
         }
@@ -86,7 +86,6 @@
             box-shadow: 0 30px 60px rgba(0,0,0,0.5); border-color: rgba(88, 166, 255, 0.4);
         }
         
-        /* REAL PHOTO AVATAR STYLES */
         .avatar-container {
             position: relative; width: 110px; height: 110px; margin: 0 auto 25px;
         }
@@ -108,7 +107,6 @@
         .team-card .role { color: #8b949e; font-size: 16px; margin-bottom: 20px; font-weight: 500; }
         .team-card p { color: #e6edf3; line-height: 1.6; flex-grow: 1; margin-bottom: 25px; }
 
-        /* INTERACTIVE ABOUT BUTTON STYLES */
         .about-btn-container {
             position: relative; width: 100%; height: 45px; border-radius: 12px;
             background: rgba(88, 166, 255, 0.1); border: 1px solid rgba(88, 166, 255, 0.3);
@@ -131,7 +129,6 @@
         .about-btn-container:hover .about-text { opacity: 0; transform: translateY(-20px); }
         .about-btn-container:hover .hidden-nav { opacity: 1; transform: translateY(0); }
 
-        /* Transparent Buttons with Icons */
         .transparent-btn {
             display: flex; align-items: center; gap: 6px; /* Space between icon and text */
             background: transparent; color: #e6edf3; padding: 6px 14px; border-radius: 8px;
@@ -144,7 +141,6 @@
             transform: scale(1.05);
         }
 
-        /* OTHER INFO STYLES */
         .project-info {
             background: rgba(22, 27, 34, 0.95); border-radius: 24px; padding: 50px; text-align: center;
             box-shadow: 0 30px 70px rgba(0,0,0,0.6); border: 1px solid rgba(88, 166, 255, 0.2); backdrop-filter: blur(20px);
@@ -295,7 +291,6 @@
     </div>
 
     <script>
-        // Animate team cards on scroll
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -309,7 +304,6 @@
             observer.observe(document.querySelector('.team-section'));
         });
 
-        // Function to trigger the Info Modal
         function showMemberInfo(name, roll, group, dept) {
             const modal = document.createElement("div");
             modal.style.cssText = `
@@ -339,14 +333,12 @@
             
             document.body.appendChild(modal);
             
-            // Small delay to allow CSS transitions to trigger
             requestAnimationFrame(() => {
                 modal.style.opacity = "1";
                 document.getElementById('modalBox').style.transform = "scale(1)";
             });
         }
 
-        // Function to close the modal with animation
         function closeModal(btn) {
             const modal = btn.closest('div').parentElement;
             modal.style.opacity = "0";
