@@ -446,13 +446,12 @@
     //  🔧  SUPABASE CONFIG — replace with your credentials
     //      Supabase Dashboard → Project → Settings → API
     // ================================================================
-
-    const SUPABASE_URL  = 'https://ejjyhlwbkpnmrytuqgug.supabase.co';         // e.g. https://xyzxyz.supabase.co
-    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqanlobHdia3BubXJ5dHVxZ3VnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNTAwMDIsImV4cCI6MjA4OTcyNjAwMn0.a-aqOsOWNg1Alt6elXDHju-2XQDtiROazU_MDBa4thA';    // long public anon key
-
+    const SUPABASE_URL  = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON = 'YOUR_SUPABASE_ANON_KEY';
     // ================================================================
 
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    let currentUser = null;
 
     function applyAuthState(session) {
         const gate    = document.getElementById('authGate');
@@ -518,8 +517,22 @@
 
     let donutChartInst = null, lineChartInst = null, dayBarInst = null;
 
-    function buildAnalytics() {
-        const tasks = JSON.parse(localStorage.getItem('tasknova_tasks') || '[]');
+    async function buildAnalytics() {
+        // Fetch all tasks from Supabase (cloud, works on any device)
+        const { data, error } = await sb
+            .from('tasks')
+            .select('id,text,priority,tags,completed,scheduled_time,created_at')
+            .order('created_at', { ascending: false });
+        if (error) { console.error('Failed to load tasks for analytics:', error.message); return; }
+        const tasks = (data || []).map(row => ({
+            id:            row.id,
+            text:          row.text,
+            priority:      row.priority,
+            tags:          row.tags || [],
+            completed:     row.completed,
+            scheduledTime: row.scheduled_time || null,
+            createdAt:     row.created_at,
+        }));
 
         /* ── BASIC COUNTS ── */
         const total   = tasks.length;
@@ -537,10 +550,8 @@
         document.getElementById('statSched').textContent   = sched;
         document.getElementById('donutPct').textContent    = pct + '%';
 
-        const rawBytes = new Blob([localStorage.getItem('tasknova_tasks') || '']).size;
         document.getElementById('acctStorage').textContent =
-            total + ' task' + (total !== 1 ? 's' : '') +
-            ' (' + (rawBytes < 1024 ? rawBytes + ' B' : (rawBytes / 1024).toFixed(1) + ' KB') + ')';
+            total + ' task' + (total !== 1 ? 's' : '') + ' (cloud synced ☁️)';
 
         /* ── STREAK CALCULATION ── */
         buildStreaks(tasks);
@@ -833,10 +844,23 @@
         });
     }
 
-    function clearAllTasks() {
-        if (!confirm('Delete ALL tasks permanently?')) return;
-        localStorage.removeItem('tasknova_tasks');
+    async function clearAllTasks() {
+        if (!confirm('Delete ALL tasks permanently? This cannot be undone.')) return;
+        if (!currentUser) return;
+        const { error } = await sb.from('tasks').delete().eq('user_id', currentUser.id);
+        if (error) { alert('Error: ' + error.message); return; }
         buildAnalytics();
+        showToastProfile('🗑️ All tasks cleared.', '#ff4d4d');
+    }
+    function showToastProfile(msg, color='#58a6ff') {
+        // Simple reuse of the DOM if a toast container exists, otherwise just log
+        const c = document.getElementById('toastContainer');
+        if (!c) { console.log(msg); return; }
+        const t = document.createElement('div');
+        t.style.cssText = 'background:rgba(22,27,34,0.97);border-radius:12px;padding:14px 20px;border:1px solid rgba(88,166,255,0.3);color:#f0f6fc;font-size:14px;display:flex;align-items:center;gap:10px;animation:toastIn .4s ease;max-width:320px;font-family:Space Grotesk,sans-serif';
+        t.innerHTML = `<span style="color:${color};font-size:16px;">●</span> ${msg}`;
+        c.appendChild(t);
+        setTimeout(()=>{t.remove();},3500);
     }
     function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
@@ -871,5 +895,6 @@
     document.addEventListener('mousemove',e=>{cx=e.clientX;cy=e.clientY;cursorEl.style.left=cx+'px';cursorEl.style.top=cy+'px';});
     (function animCursor(){rx+=(cx-rx)*.12;ry+=(cy-ry)*.12;ringEl.style.left=rx+'px';ringEl.style.top=ry+'px';requestAnimationFrame(animCursor);})();
 </script>
+<div class="toast-container" id="toastContainer" style="position:fixed;bottom:28px;right:28px;z-index:9999;display:flex;flex-direction:column;gap:10px"></div>
 </body>
 </html>
