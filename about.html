@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskNova – About</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #080c12; --surface: rgba(255,255,255,0.04); --surface-hi: rgba(255,255,255,0.08);
+            --border: rgba(255,255,255,0.08); --border-hi: rgba(88,166,255,0.35);
+            --accent: #58a6ff; --accent2: #1f6feb; --accent3: #a371f7;
+            --text: #f0f6fc; --muted: rgba(240,246,252,0.5);
+            --danger: #ff4d4d; --success: #2ea043; --warn: #e3b341;
+            --radius: 16px; --radius-sm: 10px;
+        }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'DM Sans', sans-serif; color: var(--text); background: var(--bg); min-height: 100vh; overflow-x: hidden; cursor: none; }
+        #cursor { position: fixed; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); pointer-events: none; z-index: 9999; transform: translate(-50%,-50%); transition: width .3s, height .3s; mix-blend-mode: screen; }
+        #cursor-ring { position: fixed; width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid rgba(88,166,255,0.5); pointer-events: none; z-index: 9998; transform: translate(-50%,-50%); transition: width .3s, height .3s; }
+        #blob-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+        .noise { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: .025; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); background-size: 200px 200px; }
+
+        /* ── NAVBAR ── */
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 20px 60px; position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(8,12,18,0.92); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border); }
+        .nav-logo { display: flex; align-items: center; gap: 10px; font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -.5px; text-decoration: none; }
+        .logo-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent3)); display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 0 20px rgba(88,166,255,0.4); }
+        .nav-links { display: flex; gap: 4px; list-style: none; }
+        .nav-links li a { display: block; padding: 9px 18px; border-radius: 10px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; transition: all .25s; border: 1px solid transparent; }
+        .nav-links li a:hover, .nav-links li a.active { color: var(--text); background: var(--surface-hi); border-color: var(--border); }
+        .nav-links li a.active { color: var(--accent); }
+        .nav-auth { display: flex; align-items: center; gap: 10px; }
+        .nav-cta { padding: 10px 22px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #080c12; font-weight: 700; font-size: 14px; text-decoration: none; transition: all .25s; box-shadow: 0 4px 20px rgba(88,166,255,0.3); white-space: nowrap; }
+        .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(88,166,255,0.5); }
+        .nav-user-chip { display: none; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border-radius: 20px; background: var(--surface-hi); border: 1px solid var(--border); }
+        .nav-user-chip.show { display: flex; }
+        .nav-user-chip:hover { border-color: rgba(88,166,255,0.4); background: rgba(88,166,255,0.08); cursor: pointer; }
+        .nav-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent3)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; font-family: 'Syne', sans-serif; color: #080c12; flex-shrink: 0; }
+        .nav-username { font-size: 13px; font-weight: 500; color: var(--text); max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .nav-signout-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,77,77,0.3); background: transparent; color: var(--danger); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
+        .nav-signout-btn:hover { background: rgba(255,77,77,0.1); border-color: var(--danger); }
+
+        /* ── ABOUT CONTENT (100% original) ── */
+        .about-section { padding: 120px 40px 80px; max-width: 1100px; margin: 0 auto; position: relative; z-index: 10; }
+        .hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 20px; background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.2); font-size: 12px; font-weight: 500; color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 32px; }
+        .eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s ease infinite; }
+        @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+        .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 80px; }
+        .team-card { padding: 36px 28px; border-radius: 22px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); transition: all .4s cubic-bezier(.4,0,.2,1); position: relative; overflow: hidden; opacity: 0; transform: translateY(40px); display: flex; flex-direction: column; }
+        .team-card.visible { opacity: 1; transform: translateY(0); }
+        .team-card:hover { border-color: rgba(88,166,255,0.25); transform: translateY(-10px); box-shadow: 0 32px 64px rgba(0,0,0,0.5); }
+        .avatar-wrap { position: relative; width: 88px; height: 88px; margin: 0 auto 20px; }
+        .avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid rgba(88,166,255,0.3); background: linear-gradient(135deg,rgba(88,166,255,0.15),rgba(163,113,247,0.15)); display: flex; align-items: center; justify-content: center; font-size: 36px; transition: .3s; }
+        .team-card:hover .avatar-img { border-color: var(--accent); transform: scale(1.06); }
+        .team-card h3 { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 4px; text-align: center; letter-spacing: -.3px; }
+        .team-role { font-size: 12px; color: var(--accent); font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; text-align: center; margin-bottom: 16px; }
+        .team-desc { font-size: 14px; color: var(--muted); line-height: 1.7; text-align: center; flex: 1; margin-bottom: 24px; }
+        .team-info { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+        .info-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .info-row:last-child { border-bottom: none; }
+        .info-key { color: var(--muted); } .info-val { color: var(--accent); font-weight: 500; }
+        .team-links { display: flex; gap: 8px; }
+        .team-link { flex: 1; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 13px; text-decoration: none; text-align: center; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
+        .team-link:hover { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,0.08); }
+        .features-section { margin-bottom: 80px; }
+        .features-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+        .feat-item { padding: 20px 22px; border-radius: var(--radius); background: rgba(255,255,255,0.03); border: 1px solid var(--border); display: flex; align-items: flex-start; gap: 14px; transition: all .3s; opacity: 0; transform: translateY(20px); }
+        .feat-item.visible { opacity: 1; transform: translateY(0); }
+        .feat-item:hover { border-color: rgba(88,166,255,0.25); background: rgba(88,166,255,0.04); transform: translateX(6px); }
+        footer { border-top: 1px solid var(--border); padding: 40px 60px; text-align: center; color: var(--muted); font-size: 13px; position: relative; z-index: 10; }
+        footer a { color: var(--accent); text-decoration: none; transition: .2s; }
+        footer a:hover { color: var(--text); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 500; opacity: 0; transition: opacity .25s; pointer-events: none; }
+        .modal-box { background: rgba(22,27,34,0.98); border-radius: 20px; padding: 36px; border: 1px solid rgba(88,166,255,0.25); text-align: left; max-width: 380px; width: 90%; transform: scale(.88); transition: transform .25s; }
+        .modal-info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 14px; }
+        @media(max-width:768px) { .navbar { padding: 16px 20px; } .nav-links { display: none; } .about-section { padding: 110px 20px 60px; } .team-links { flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <div id="cursor"></div>
+    <div id="cursor-ring"></div>
+    <canvas id="blob-canvas"></canvas>
+    <div class="noise"></div>
+
+    <nav class="navbar" id="navbar">
+        <a href="index.html" class="nav-logo">
+            <div class="logo-icon">🚀</div> TaskNova
+        </a>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="tasks.html">Manage Tasks</a></li>
+            <li><a href="about.html" class="active">About</a></li>
+        </ul>
+        <div class="nav-auth">
+            <a href="profile.html" class="nav-user-chip" id="navUserChip" title="View profile" style="text-decoration:none">
+                <div class="nav-avatar" id="navAvatar">?</div>
+                <span class="nav-username" id="navUsername"></span>
+            </a>
+            <button class="nav-signout-btn" id="navSignOutBtn" style="display:none;" onclick="navSignOut()">Sign Out</button>
+            <a href="login.html" class="nav-cta" id="navSignInBtn">Sign In →</a>
+        </div>
+    </nav>
+
+    <section class="about-section">
+        <div style="text-align:center;margin-bottom:60px;">
+            <div class="hero-eyebrow"><span class="eyebrow-dot"></span>Chitkara University · 2026</div>
+            <h2 style="font-family:'Syne',sans-serif;font-size:clamp(32px,5vw,44px);font-weight:800;letter-spacing:-1px;color:var(--text);margin-bottom:14px;">Human Architects <span>Behind It</span></h2>
+            <p style="color:var(--muted);max-width:500px;margin:0 auto;font-size:16px;">TaskNova was engineered and designed by three CSE AiML group buddies.</p>
+        </div>
+
+        <div class="team-grid">
+            <div class="team-card">
+                <div class="avatar-wrap"><div class="avatar-img">👨‍💻</div></div>
+                <h3>Garv Goel</h3>
+                <div class="team-role">Team Leader & Innovator</div>
+                <div class="team-desc">Created the overall project vision and led the full development process. Product logic architect.</div>
+                <div class="team-info">
+                    <div class="info-row"><span class="info-key">Roll No.</span><span class="info-val">2510993068</span></div>
+                    <div class="info-row"><span class="info-key">Group</span><span class="info-val">2G3</span></div>
+                </div>
+                <div class="team-links">
+                    <a href="https://www.linkedin.com/in/garv-goel-32689438b/" target="_blank" class="team-link">LinkedIn</a>
+                    <button class="team-link" onclick="openInfoModal('Garv Goel','2510993068','2G3','B.Tech CSE AiML')">Full Info</button>
+                </div>
+            </div>
+            <div class="team-card">
+                <div class="avatar-wrap"><div class="avatar-img">🔧</div></div>
+                <h3>Ryan Sharma</h3>
+                <div class="team-role">Backend Developer</div>
+                <div class="team-desc">Mastered responsive layouts and glassmorphism. Ensures fluid rendering across device setups.</div>
+                <div class="team-info">
+                    <div class="info-row"><span class="info-key">Roll No.</span><span class="info-val">2510992928</span></div>
+                    <div class="info-row"><span class="info-key">Group</span><span class="info-val">2G3</span></div>
+                </div>
+                <div class="team-links">
+                    <a href="https://www.linkedin.com/in/ryan-sharma-bb459b2a2/" target="_blank" class="team-link">LinkedIn</a>
+                    <button class="team-link" onclick="openInfoModal('Ryan Sharma','2510992928','2G3','B.Tech CSE AiML')">Full Info</button>
+                </div>
+            </div>
+            <div class="team-card">
+                <div class="avatar-wrap"><div class="avatar-img">⚡</div></div>
+                <h3>Kartik Thakur</h3>
+                <div class="team-role">Frontend Developer</div>
+                <div class="team-desc">Crafted the core task management engine, search indexing, metrics, and Google Calendar hooks.</div>
+                <div class="team-info">
+                    <div class="info-row"><span class="info-key">Roll No.</span><span class="info-val">2510993009</span></div>
+                    <div class="info-row"><span class="info-key">Group</span><span class="info-val">2G3</span></div>
+                </div>
+                <div class="team-links">
+                    <a href="https://www.linkedin.com/in/union-create-7b8a493b6/" target="_blank" class="team-link">LinkedIn</a>
+                    <button class="team-link" onclick="openInfoModal('Kartik Thakur','2510993009','2G3','B.Tech CSE AiML')">Full Info</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="features-section">
+            <h3 style="font-family:'Syne',sans-serif;text-align:center;font-size:28px;margin-bottom:36px;">TaskNova Matrix</h3>
+            <div class="features-list">
+                <div class="feat-item"><div class="feat-icon">🎨</div><div class="feat-text"><strong>Microinteractions</strong> Smooth mouse repulsion mechanics.</div></div>
+                <div class="feat-item"><div class="feat-icon">📅</div><div class="feat-text"><strong>Third-Party Sync</strong> Synchronize hooks to remote endpoints.</div></div>
+                <div class="feat-item"><div class="feat-icon">✏️</div><div class="feat-text"><strong>Live Edit Metrics</strong> Real-time edits without refresh.</div></div>
+                <div class="feat-item"><div class="feat-icon">🎉</div><div class="feat-text"><strong>Gamification triggers</strong> High-end graphical rewards metrics.</div></div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>TaskNova © 2026 &nbsp;|&nbsp; Chitkara University Group Project &nbsp;|&nbsp;
+            <a href="tasks.html">Workspace →</a> &nbsp;|&nbsp; <a href="index.html">Home →</a>
+        </p>
+    </footer>
+
+    <div class="modal-overlay" id="infoModal">
+        <div class="modal-box">
+            <h3 id="modalName" style="color:var(--accent);margin-bottom:20px;font-family:'Syne',sans-serif;"></h3>
+            <div class="modal-info-row"><span style="color:var(--muted)">Roll No.</span><span id="modalRoll" style="color:var(--accent);font-family:'JetBrains Mono';"></span></div>
+            <div class="modal-info-row"><span style="color:var(--muted)">Group</span><span id="modalGroup" style="color:var(--accent);font-family:'JetBrains Mono';"></span></div>
+            <div class="modal-info-row" style="border-bottom:none"><span style="color:var(--muted)">Department</span><span id="modalDept" style="color:var(--accent);font-family:'JetBrains Mono';"></span></div>
+            <button onclick="closeInfoModal()" style="width:100%;margin-top:24px;padding:12px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#080c12;border:none;cursor:pointer;font-weight:700;font-family:'Syne';font-size:15px;">Close</button>
+        </div>
+    </div>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // ================================================================
+        //  🔧  SUPABASE CONFIG — paste your credentials here
+        //      Supabase Dashboard → Project → Settings → API
+        // ================================================================
+
+    const SUPABASE_URL  = 'https://ejjyhlwbkpnmrytuqgug.supabase.co';         // e.g. https://xyzxyz.supabase.co
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqanlobHdia3BubXJ5dHVxZ3VnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNTAwMDIsImV4cCI6MjA4OTcyNjAwMn0.a-aqOsOWNg1Alt6elXDHju-2XQDtiROazU_MDBa4thA';    // long public anon key
+
+        // ================================================================
+
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+        sb.auth.onAuthStateChange((_e, session) => {
+            const chip    = document.getElementById('navUserChip');
+            const avatar  = document.getElementById('navAvatar');
+            const uname   = document.getElementById('navUsername');
+            const signOut = document.getElementById('navSignOutBtn');
+            const signIn  = document.getElementById('navSignInBtn');
+            if (session && session.user) {
+                const meta = session.user.user_metadata || {};
+                const name = meta.full_name || meta.name || session.user.email.split('@')[0];
+                avatar.textContent = name[0].toUpperCase();
+                uname.textContent  = name;
+                chip.classList.add('show');
+                signOut.style.display = 'block';
+                signIn.style.display  = 'none';
+            } else {
+                chip.classList.remove('show');
+                signOut.style.display = 'none';
+                signIn.style.display  = 'block';
+            }
+        });
+
+        async function navSignOut() {
+            await sb.auth.signOut();
+        }
+    </script>
+
+    <script>
+        const canvas=document.getElementById('blob-canvas'),ctx=canvas.getContext('2d');
+        let W,H,mouse={x:-500,y:-500},t=0;
+        function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+        resize();window.addEventListener('resize',resize);
+        window.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
+        class Blob{
+            constructor(x,y,r,color,speed,pts){this.cx=x;this.cy=y;this.baseR=r;this.color=color;this.speed=speed;this.pts=pts;this.noiseOffsets=Array.from({length:pts},()=>Math.random()*1000);}
+            noise(x,y){const X=Math.floor(x)&255,Y=Math.floor(y)&255;return(Math.sin(X*127.1+Y*311.7)*.5+.5+Math.sin(X*269.5+Y*183.3)*.25+.25)*.5;}
+            draw(t,mouse){
+                ctx.beginPath();const step=(Math.PI*2)/this.pts;
+                for(let i=0;i<=this.pts;i++){const a=i*step;const n=this.noise(Math.cos(a)+this.noiseOffsets[i%this.pts]+t*this.speed*.3,Math.sin(a)+this.noiseOffsets[i%this.pts]+t*this.speed*.3);
+                const r=this.baseR*(0.75+n*0.5);const dx=(this.cx+Math.cos(a)*r)-mouse.x;const dy=(this.cy+Math.sin(a)*r)-mouse.y;
+                const dist=Math.sqrt(dx*dx+dy*dy);const repel=dist<180?(180-dist)/180*30:0;
+                const x=this.cx+Math.cos(a)*(r+repel);const y=this.cy+Math.sin(a)*(r+repel);
+                i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+                ctx.closePath();ctx.fillStyle=this.color;ctx.fill();
+            }
+        }
+        let blobs=[];
+        function initBlobs(){blobs=[];blobs.push(new Blob(W*.2,H*.4,Math.min(W,H)*.3,'rgba(31,111,235,0.1)',0.4,8));blobs.push(new Blob(W*.8,H*.3,Math.min(W,H)*.28,'rgba(88,166,255,0.07)',0.35,9));blobs.push(new Blob(W*.6,H*.75,Math.min(W,H)*.25,'rgba(163,113,247,0.09)',0.5,8));}
+        initBlobs();window.addEventListener('resize',initBlobs);
+        function animate(){ctx.clearRect(0,0,W,H);t+=0.008;blobs.forEach(b=>b.draw(t,mouse));requestAnimationFrame(animate);}
+        animate();
+        const cursorEl=document.getElementById('cursor'),ringEl=document.getElementById('cursor-ring');
+        let cx=0,cy=0,rx=0,ry=0;
+        document.addEventListener('mousemove',e=>{cx=e.clientX;cy=e.clientY;cursorEl.style.left=cx+'px';cursorEl.style.top=cy+'px';});
+        (function animCursor(){rx+=(cx-rx)*.12;ry+=(cy-ry)*.12;ringEl.style.left=rx+'px';ringEl.style.top=ry+'px';requestAnimationFrame(animCursor);})();
+
+        /* Intersection observer for card animations */
+        const observer=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.1});
+        document.querySelectorAll('.team-card,.feat-item').forEach(el=>observer.observe(el));
+
+        function openInfoModal(name,roll,group,dept){
+            document.getElementById('modalName').textContent=name;
+            document.getElementById('modalRoll').textContent=roll;
+            document.getElementById('modalGroup').textContent=group;
+            document.getElementById('modalDept').textContent=dept;
+            const m=document.getElementById('infoModal');
+            m.style.pointerEvents='all';m.style.opacity='1';
+            m.querySelector('.modal-box').style.transform='scale(1)';
+        }
+        function closeInfoModal(){
+            const m=document.getElementById('infoModal');
+            m.style.opacity='0';m.style.pointerEvents='none';
+            m.querySelector('.modal-box').style.transform='scale(.88)';
+        }
+        document.getElementById('infoModal').addEventListener('click',e=>{
+            if(e.target===document.getElementById('infoModal'))closeInfoModal();
+        });
+    </script>
+</body>
+</html>

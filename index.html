@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskNova – Smart Task Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #080c12; --surface: rgba(255,255,255,0.04); --surface-hi: rgba(255,255,255,0.08);
+            --border: rgba(255,255,255,0.08); --border-hi: rgba(88,166,255,0.35);
+            --accent: #58a6ff; --accent2: #1f6feb; --accent3: #a371f7;
+            --text: #f0f6fc; --muted: rgba(240,246,252,0.5);
+            --danger: #ff4d4d; --success: #2ea043; --warn: #e3b341;
+            --radius: 16px; --radius-sm: 10px;
+        }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'DM Sans', sans-serif; color: var(--text); background: var(--bg); min-height: 100vh; overflow-x: hidden; cursor: none; }
+        #cursor { position: fixed; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); pointer-events: none; z-index: 9999; transform: translate(-50%,-50%); transition: width .3s, height .3s; mix-blend-mode: screen; }
+        #cursor-ring { position: fixed; width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid rgba(88,166,255,0.5); pointer-events: none; z-index: 9998; transform: translate(-50%,-50%); transition: width .3s, height .3s; }
+        #blob-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+        .noise { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: .025; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); background-size: 200px 200px; }
+
+        /* ── NAVBAR ── */
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 20px 60px; position: fixed; top: 0; left: 0; right: 0; z-index: 100; transition: all .4s; }
+        .navbar.scrolled { background: rgba(8,12,18,0.92); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border); padding: 14px 60px; }
+        .nav-logo { display: flex; align-items: center; gap: 10px; font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -.5px; text-decoration: none; }
+        .logo-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent3)); display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 0 20px rgba(88,166,255,0.4); }
+        .nav-links { display: flex; gap: 4px; list-style: none; }
+        .nav-links li a { display: block; padding: 9px 18px; border-radius: 10px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; transition: all .25s; border: 1px solid transparent; }
+        .nav-links li a:hover, .nav-links li a.active { color: var(--text); background: var(--surface-hi); border-color: var(--border); }
+        .nav-links li a.active { color: var(--accent); }
+        /* Auth nav area */
+        .nav-auth { display: flex; align-items: center; gap: 10px; }
+        .nav-cta { padding: 10px 22px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #080c12; font-weight: 700; font-size: 14px; text-decoration: none; transition: all .25s; box-shadow: 0 4px 20px rgba(88,166,255,0.3); white-space: nowrap; }
+        .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(88,166,255,0.5); }
+        /* User chip shown when signed in */
+        .nav-user-chip { display: none; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border-radius: 20px; background: var(--surface-hi); border: 1px solid var(--border); }
+        .nav-user-chip.show { display: flex; }
+        .nav-user-chip:hover { border-color: rgba(88,166,255,0.4); background: rgba(88,166,255,0.08); cursor: pointer; }
+        .nav-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent3)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; font-family: 'Syne', sans-serif; color: #080c12; flex-shrink: 0; }
+        .nav-username { font-size: 13px; font-weight: 500; color: var(--text); max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .nav-signout-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,77,77,0.3); background: transparent; color: var(--danger); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
+        .nav-signout-btn:hover { background: rgba(255,77,77,0.1); border-color: var(--danger); }
+
+        /* ── HERO ── */
+        .hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 120px 40px 80px; position: relative; z-index: 10; }
+        .hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 20px; background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.2); font-size: 12px; font-weight: 500; color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 32px; animation: fadeUp .8s ease both; }
+        .eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s ease infinite; }
+        @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+        .hero-title { font-family: 'Syne', sans-serif; font-size: clamp(52px,9vw,96px); font-weight: 800; line-height: 1; letter-spacing: -3px; margin-bottom: 24px; animation: fadeUp .8s ease .15s both; }
+        .hero-title .line1 { display: block; color: var(--text); }
+        .hero-title .line2 { display: block; background: linear-gradient(135deg, var(--accent) 0%, var(--accent3) 50%, var(--accent) 100%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: shimmer 4s linear infinite; }
+        @keyframes shimmer { to { background-position: 200% center; } }
+        .hero-sub { max-width: 520px; font-size: 18px; line-height: 1.7; color: var(--muted); margin-bottom: 48px; font-weight: 300; animation: fadeUp .8s ease .3s both; }
+        .quote-box { max-width: 560px; margin: 0 auto 48px; padding: 20px 28px; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); backdrop-filter: blur(10px); animation: fadeUp .8s ease .45s both; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+        .quote-text { font-size: 15px; color: var(--muted); font-style: italic; line-height: 1.6; margin-bottom: 8px; }
+        .quote-author { font-size: 12px; color: var(--accent); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+        .cta-row { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; animation: fadeUp .8s ease .55s both; }
+        .btn-hero-primary { display: inline-flex; align-items: center; gap: 10px; padding: 17px 36px; border-radius: 14px; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #080c12; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; text-decoration: none; transition: all .3s; box-shadow: 0 8px 32px rgba(88,166,255,0.35); }
+        .btn-hero-primary:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(88,166,255,0.5); }
+        .btn-hero-secondary { display: inline-flex; align-items: center; gap: 10px; padding: 17px 36px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-family: 'Syne', sans-serif; font-weight: 600; font-size: 16px; text-decoration: none; transition: all .3s; backdrop-filter: blur(10px); }
+        .btn-hero-secondary:hover { background: var(--surface-hi); border-color: var(--border-hi); transform: translateY(-4px); }
+
+        footer { border-top: 1px solid var(--border); padding: 40px 60px; text-align: center; color: var(--muted); font-size: 13px; position: relative; z-index: 10; }
+        footer a { color: var(--accent); text-decoration: none; transition: .2s; }
+        footer a:hover { color: var(--text); }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(30px) } to { opacity:1; transform:translateY(0) } }
+        @media(max-width:768px) { .navbar { padding: 16px 20px; } .nav-links { display: none; } }
+    </style>
+</head>
+<body>
+    <div id="cursor"></div>
+    <div id="cursor-ring"></div>
+    <canvas id="blob-canvas"></canvas>
+    <div class="noise"></div>
+
+    <nav class="navbar" id="navbar">
+        <a href="index.html" class="nav-logo">
+            <div class="logo-icon">🚀</div> TaskNova
+        </a>
+        <ul class="nav-links">
+            <li><a href="index.html" class="active">Home</a></li>
+            <li><a href="tasks.html">Manage Tasks</a></li>
+            <li><a href="about.html">About</a></li>
+        </ul>
+        <!-- Auth area: shows Sign In OR user chip + sign out -->
+        <div class="nav-auth">
+            <a href="profile.html" class="nav-user-chip" id="navUserChip" title="View profile" style="text-decoration:none">
+                <div class="nav-avatar" id="navAvatar">?</div>
+                <span class="nav-username" id="navUsername"></span>
+            </a>
+            <button class="nav-signout-btn" id="navSignOutBtn" style="display:none;" onclick="navSignOut()">Sign Out</button>
+            <a href="login.html" class="nav-cta" id="navSignInBtn">Sign In →</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-eyebrow">
+            <span class="eyebrow-dot"></span> Smart Productivity for Modern Teams
+        </div>
+        <h1 class="hero-title">
+            <span class="line1">Master Your</span>
+            <span class="line2">Productivity</span>
+        </h1>
+        <p class="hero-sub">Transform chaos into clarity. Add, track, filter, and conquer your tasks with a dashboard built for deep focus and real efficiency.</p>
+        <div class="quote-box">
+            <div class="quote-text" id="heroQuoteText">Loading inspiration...</div>
+            <div class="quote-author" id="heroQuoteAuthor">—</div>
+        </div>
+        <div class="cta-row">
+            <a href="tasks.html" class="btn-hero-primary">
+                <span>Start Managing Tasks</span>
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+            <a href="about.html" class="btn-hero-secondary">
+                <span>Meet Our Team</span>
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+            </a>
+        </div>
+    </section>
+
+    <footer>
+        <p>TaskNova © 2026 &nbsp;|&nbsp; Chitkara University Group Project &nbsp;|&nbsp;
+            <a href="tasks.html">Workspace →</a> &nbsp;|&nbsp; <a href="index.html">Home →</a>
+        </p>
+    </footer>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // ================================================================
+        //  🔧  SUPABASE CONFIG — paste your credentials here
+        //      Supabase Dashboard → Project → Settings → API
+        // ================================================================
+
+    const SUPABASE_URL  = 'https://ejjyhlwbkpnmrytuqgug.supabase.co';         // e.g. https://xyzxyz.supabase.co
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqanlobHdia3BubXJ5dHVxZ3VnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNTAwMDIsImV4cCI6MjA4OTcyNjAwMn0.a-aqOsOWNg1Alt6elXDHju-2XQDtiROazU_MDBa4thA';    // long public anon key
+
+        // ================================================================
+
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+        // Update navbar based on auth state
+        sb.auth.onAuthStateChange((_e, session) => {
+            const chip     = document.getElementById('navUserChip');
+            const avatar   = document.getElementById('navAvatar');
+            const username = document.getElementById('navUsername');
+            const signOut  = document.getElementById('navSignOutBtn');
+            const signIn   = document.getElementById('navSignInBtn');
+            if (session && session.user) {
+                const meta = session.user.user_metadata || {};
+                const name = meta.full_name || meta.name || session.user.email.split('@')[0];
+                avatar.textContent   = name[0].toUpperCase();
+                username.textContent = name;
+                chip.classList.add('show');
+                signOut.style.display = 'block';
+                signIn.style.display  = 'none';
+            } else {
+                chip.classList.remove('show');
+                signOut.style.display = 'none';
+                signIn.style.display  = 'block';
+            }
+        });
+
+        async function navSignOut() {
+            await sb.auth.signOut();
+        }
+    </script>
+
+    <script>
+        /* ── BLOB BACKGROUND ── */
+        const canvas = document.getElementById('blob-canvas'), ctx = canvas.getContext('2d');
+        let W, H, mouse = {x:-500,y:-500}, t = 0;
+        function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+        resize(); window.addEventListener('resize', resize);
+        window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+        class Blob {
+            constructor(x,y,r,color,speed,pts) { this.cx=x;this.cy=y;this.baseR=r;this.color=color;this.speed=speed;this.pts=pts;this.noiseOffsets=Array.from({length:pts},()=>Math.random()*1000); }
+            noise(x,y) { const X=Math.floor(x)&255,Y=Math.floor(y)&255; return(Math.sin(X*127.1+Y*311.7)*.5+.5+Math.sin(X*269.5+Y*183.3)*.25+.25)*.5; }
+            draw(t,mouse) {
+                ctx.beginPath(); const step=(Math.PI*2)/this.pts;
+                for(let i=0;i<=this.pts;i++) {
+                    const a=i*step; const n=this.noise(Math.cos(a)+this.noiseOffsets[i%this.pts]+t*this.speed*.3,Math.sin(a)+this.noiseOffsets[i%this.pts]+t*this.speed*.3);
+                    const r=this.baseR*(0.75+n*0.5); const dx=(this.cx+Math.cos(a)*r)-mouse.x; const dy=(this.cy+Math.sin(a)*r)-mouse.y;
+                    const dist=Math.sqrt(dx*dx+dy*dy); const repel=dist<180?(180-dist)/180*30:0;
+                    const x=this.cx+Math.cos(a)*(r+repel); const y=this.cy+Math.sin(a)*(r+repel);
+                    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+                }
+                ctx.closePath(); ctx.fillStyle=this.color; ctx.fill();
+            }
+        }
+        let blobs=[];
+        function initBlobs() { blobs=[]; blobs.push(new Blob(W*.2,H*.4,Math.min(W,H)*.3,'rgba(31,111,235,0.1)',0.4,8)); blobs.push(new Blob(W*.8,H*.3,Math.min(W,H)*.28,'rgba(88,166,255,0.07)',0.35,9)); blobs.push(new Blob(W*.6,H*.75,Math.min(W,H)*.25,'rgba(163,113,247,0.09)',0.5,8)); }
+        initBlobs(); window.addEventListener('resize',initBlobs);
+        function animate() { ctx.clearRect(0,0,W,H); t+=0.008; blobs.forEach(b=>b.draw(t,mouse)); requestAnimationFrame(animate); }
+        animate();
+
+        const cursorEl=document.getElementById('cursor'),ringEl=document.getElementById('cursor-ring');
+        let cx=0,cy=0,rx=0,ry=0;
+        document.addEventListener('mousemove',e=>{cx=e.clientX;cy=e.clientY;cursorEl.style.left=cx+'px';cursorEl.style.top=cy+'px';});
+        (function animCursor(){rx+=(cx-rx)*.12;ry+=(cy-ry)*.12;ringEl.style.left=rx+'px';ringEl.style.top=ry+'px';requestAnimationFrame(animCursor);})();
+        window.addEventListener('scroll',()=>{document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>50);});
+
+        const QUOTES_FALLBACK=[{content:"The secret of getting ahead is getting started.",author:"Mark Twain"},{content:"Done is better than perfect.",author:"Sheryl Sandberg"}];
+        const textEl=document.getElementById('heroQuoteText'),authEl=document.getElementById('heroQuoteAuthor');
+        textEl.textContent=`"${QUOTES_FALLBACK[0].content}"`;
+        authEl.textContent=`— ${QUOTES_FALLBACK[0].author}`;
+    </script>
+</body>
+</html>

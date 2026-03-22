@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskNova – Profile & Analytics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #080c12; --surface: rgba(255,255,255,0.04); --surface-hi: rgba(255,255,255,0.08);
+            --border: rgba(255,255,255,0.08); --border-hi: rgba(88,166,255,0.35);
+            --accent: #58a6ff; --accent2: #1f6feb; --accent3: #a371f7;
+            --text: #f0f6fc; --muted: rgba(240,246,252,0.5);
+            --danger: #ff4d4d; --success: #2ea043; --warn: #e3b341;
+            --radius: 16px; --radius-sm: 10px;
+        }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'DM Sans', sans-serif; color: var(--text); background: var(--bg); min-height: 100vh; overflow-x: hidden; cursor: none; }
+
+        #cursor { position: fixed; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); pointer-events: none; z-index: 9999; transform: translate(-50%,-50%); mix-blend-mode: screen; }
+        #cursor-ring { position: fixed; width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid rgba(88,166,255,0.5); pointer-events: none; z-index: 9998; transform: translate(-50%,-50%); transition: width .3s, height .3s; }
+        #blob-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+        .noise { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: .025;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+            background-size: 200px 200px; }
+
+        /* ── NAVBAR ── */
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 20px 60px; position: fixed; top: 0; left: 0; right: 0; z-index: 200; background: rgba(8,12,18,0.92); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border); }
+        .nav-logo { display: flex; align-items: center; gap: 10px; font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -.5px; text-decoration: none; }
+        .logo-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent3)); display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 0 20px rgba(88,166,255,0.4); }
+        .nav-links { display: flex; gap: 4px; list-style: none; }
+        .nav-links li a { display: block; padding: 9px 18px; border-radius: 10px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; transition: all .25s; border: 1px solid transparent; }
+        .nav-links li a:hover { color: var(--text); background: var(--surface-hi); border-color: var(--border); }
+        .nav-links li a.active { color: var(--accent); background: var(--surface-hi); border-color: var(--border); }
+        .nav-auth { display: flex; align-items: center; gap: 10px; }
+        .nav-user-chip { display: none; align-items: center; gap: 8px; padding: 6px 14px 6px 8px; border-radius: 20px; background: var(--surface-hi); border: 1px solid var(--border); cursor: pointer; transition: all .25s; text-decoration: none; }
+        .nav-user-chip.show { display: flex; }
+        .nav-user-chip:hover { border-color: rgba(88,166,255,0.4); background: rgba(88,166,255,0.08); }
+        .nav-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent3)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; font-family: 'Syne', sans-serif; color: #080c12; flex-shrink: 0; }
+        .nav-username { font-size: 13px; font-weight: 500; color: var(--text); max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .nav-signout-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,77,77,0.3); background: transparent; color: var(--danger); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: 'DM Sans', sans-serif; }
+        .nav-signout-btn:hover { background: rgba(255,77,77,0.1); border-color: var(--danger); }
+        .nav-cta { padding: 10px 22px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #080c12; font-weight: 700; font-size: 14px; text-decoration: none; transition: all .25s; box-shadow: 0 4px 20px rgba(88,166,255,0.3); }
+        .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(88,166,255,0.5); }
+
+        /* ── AUTH GATE ── */
+        #authGate { position: fixed; inset: 0; background: rgba(8,12,18,0.97); z-index: 150; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 20px; text-align: center; padding: 24px; transition: opacity .4s; }
+        #authGate.hidden { opacity: 0; pointer-events: none; }
+        #authGate h2 { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: var(--accent); }
+        #authGate p { color: var(--muted); font-size: 15px; max-width: 340px; line-height: 1.7; }
+        .gate-btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 30px; border-radius: 14px; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #080c12; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; text-decoration: none; }
+
+        /* ── LAYOUT ── */
+        .profile-page { padding: 110px 40px 80px; max-width: 1060px; margin: 0 auto; position: relative; z-index: 10; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(28px)} to{opacity:1;transform:translateY(0)} }
+
+        /* ── CARDS ── */
+        .card { background: rgba(22,27,34,0.97); border-radius: 20px; border: 1px solid var(--border); padding: 28px; animation: fadeUp .7s ease both; }
+        .card + .card { margin-top: 20px; }
+
+        /* ── SECTION TITLE ── */
+        .sec { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.8px; color: var(--muted); margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+        .sec::after { content:''; flex:1; height:1px; background: var(--border); }
+
+        /* ── HERO ── */
+        .profile-hero { background: rgba(22,27,34,0.97); border-radius: 24px; border: 1px solid var(--border-hi); box-shadow: 0 24px 60px rgba(0,0,0,0.5); padding: 36px 40px; margin-bottom: 20px; display: flex; align-items: center; gap: 32px; position: relative; overflow: hidden; animation: fadeUp .6s ease both; }
+        .profile-hero::before { content:''; position:absolute; top:-80px; right:-80px; width:280px; height:280px; border-radius:50%; background: radial-gradient(circle, rgba(88,166,255,0.07) 0%, transparent 70%); }
+        .profile-hero::after  { content:''; position:absolute; bottom:-60px; left:-60px; width:220px; height:220px; border-radius:50%; background: radial-gradient(circle, rgba(163,113,247,0.06) 0%, transparent 70%); }
+        .avatar-big { width: 88px; height: 88px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent3)); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 34px; font-weight: 800; color: #080c12; flex-shrink: 0; box-shadow: 0 0 0 4px rgba(88,166,255,0.2), 0 0 32px rgba(88,166,255,0.3); position: relative; z-index: 1; }
+        .profile-info { flex: 1; position: relative; z-index: 1; }
+        .profile-name  { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 3px; }
+        .profile-email { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+        .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-green  { background: rgba(46,160,67,0.12);  border: 1px solid rgba(46,160,67,0.3);  color: var(--success); }
+        .badge-blue   { background: rgba(88,166,255,0.1);  border: 1px solid rgba(88,166,255,0.25); color: var(--accent); }
+        .badge-dot    { width:5px; height:5px; border-radius:50%; background:currentColor; animation: pulse 2s ease infinite; }
+        @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+        .profile-joined { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+
+        /* ── STREAK SECTION ── */
+        .streak-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+        .streak-card { background: rgba(22,27,34,0.97); border-radius: 20px; border: 1px solid var(--border); padding: 24px; text-align: center; position: relative; overflow: hidden; transition: all .3s; animation: fadeUp .7s ease both; }
+        .streak-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+        .streak-card.fire { border-color: rgba(255,166,0,0.3); }
+        .streak-card.fire::before { content:''; position:absolute; inset:0; background: radial-gradient(ellipse at 50% 120%, rgba(255,140,0,0.08) 0%, transparent 65%); }
+        .streak-emoji { font-size: 36px; display: block; margin-bottom: 8px; }
+        .streak-num   { font-family: 'Syne', sans-serif; font-size: 44px; font-weight: 800; letter-spacing: -3px; line-height: 1; }
+        .streak-num.fire-color { background: linear-gradient(135deg, #ff8c00, #ff4d4d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .streak-num.green-color { color: var(--success); }
+        .streak-num.blue-color  { color: var(--accent); }
+        .streak-label { font-size: 12px; color: var(--muted); margin-top: 6px; font-weight: 500; }
+
+        /* ── STATS GRID ── */
+        .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 20px; }
+        .stat-card { background: rgba(22,27,34,0.97); border-radius: 18px; border: 1px solid var(--border); padding: 22px 18px; position: relative; overflow: hidden; transition: all .3s; animation: fadeUp .7s ease both; }
+        .stat-card:nth-child(1){animation-delay:.04s} .stat-card:nth-child(2){animation-delay:.08s}
+        .stat-card:nth-child(3){animation-delay:.12s} .stat-card:nth-child(4){animation-delay:.16s}
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 18px 36px rgba(0,0,0,0.4); }
+        .stat-card::after { content:''; position:absolute; bottom:0; left:0; right:0; height:3px; border-radius:0 0 18px 18px; }
+        .stat-card.c-total::after   { background: linear-gradient(90deg,var(--accent),var(--accent2)); }
+        .stat-card.c-done::after    { background: linear-gradient(90deg,var(--success),#27a844); }
+        .stat-card.c-pending::after { background: linear-gradient(90deg,var(--warn),#d4a530); }
+        .stat-card.c-sched::after   { background: linear-gradient(90deg,var(--accent3),#8b5cf6); }
+        .stat-icon  { font-size: 24px; margin-bottom: 10px; display: block; }
+        .stat-value { font-family: 'Syne', sans-serif; font-size: 38px; font-weight: 800; letter-spacing: -2px; line-height: 1; margin-bottom: 3px; }
+        .stat-card.c-total   .stat-value { color: var(--accent); }
+        .stat-card.c-done    .stat-value { color: var(--success); }
+        .stat-card.c-pending .stat-value { color: var(--warn); }
+        .stat-card.c-sched   .stat-value { color: var(--accent3); }
+        .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+
+        /* ── TWO-COL GRID ── */
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+
+        /* ── CHART CARDS ── */
+        .chart-card { background: rgba(22,27,34,0.97); border-radius: 20px; border: 1px solid var(--border); padding: 24px; animation: fadeUp .7s ease .2s both; }
+        .chart-card h3 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+        .chart-card .sub { font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+        .chart-wrap { position: relative; }
+        .chart-wrap canvas { max-height: 200px; }
+        .donut-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; pointer-events: none; }
+        .donut-center .big { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: var(--accent); line-height: 1; }
+        .donut-center .sm  { font-size: 11px; color: var(--muted); }
+
+        /* ── HEATMAP ── */
+        .heatmap-card { background: rgba(22,27,34,0.97); border-radius: 20px; border: 1px solid var(--border); padding: 24px; margin-bottom: 20px; animation: fadeUp .7s ease .25s both; overflow-x: auto; }
+        .heatmap-card h3 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+        .heatmap-card .sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+        .heatmap-grid { display: flex; gap: 4px; align-items: flex-start; min-width: max-content; }
+        .heatmap-week { display: flex; flex-direction: column; gap: 4px; }
+        .heatmap-cell { width: 14px; height: 14px; border-radius: 3px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.04); transition: transform .15s; cursor: default; position: relative; }
+        .heatmap-cell:hover { transform: scale(1.3); z-index: 10; }
+        .heatmap-cell[data-c="1"] { background: rgba(88,166,255,0.2);  border-color: rgba(88,166,255,0.3); }
+        .heatmap-cell[data-c="2"] { background: rgba(88,166,255,0.4);  border-color: rgba(88,166,255,0.5); }
+        .heatmap-cell[data-c="3"] { background: rgba(88,166,255,0.65); border-color: rgba(88,166,255,0.7); }
+        .heatmap-cell[data-c="4"] { background: rgba(88,166,255,0.9);  border-color: rgba(88,166,255,1); }
+        .heatmap-months { display: flex; gap: 4px; margin-bottom: 6px; min-width: max-content; font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; padding-left: 0; }
+        .heatmap-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 11px; color: var(--muted); }
+        .heatmap-legend { display: flex; gap: 3px; align-items: center; }
+        .heatmap-legend .heatmap-cell { width: 12px; height: 12px; }
+        .tooltip { position: fixed; background: rgba(22,27,34,0.98); border: 1px solid var(--border-hi); border-radius: 8px; padding: 6px 10px; font-size: 11px; color: var(--text); pointer-events: none; z-index: 9000; white-space: nowrap; display: none; font-family: 'JetBrains Mono', monospace; }
+
+        /* ── COMPLETION TREND ── */
+        .trend-card { background: rgba(22,27,34,0.97); border-radius: 20px; border: 1px solid var(--border); padding: 24px; margin-bottom: 20px; animation: fadeUp .7s ease .3s both; }
+        .trend-card h3 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+        .trend-card .sub { font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+
+        /* ── PRIORITY BARS ── */
+        .prio-card { background: rgba(22,27,34,0.97); border-radius: 20px; border: 1px solid var(--border); padding: 24px; animation: fadeUp .7s ease .22s both; }
+        .prio-card h3 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+        .prio-card .sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+        .prio-rows { display: flex; flex-direction: column; gap: 14px; }
+        .prio-row { display: flex; flex-direction: column; gap: 6px; }
+        .prio-row-head { display: flex; justify-content: space-between; font-size: 12px; }
+        .prio-row-label { color: var(--muted); display: flex; align-items: center; gap: 6px; }
+        .prio-row-val   { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+        .prio-track { height: 7px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+        .prio-fill  { height: 100%; border-radius: 4px; width: 0%; transition: width 1.2s cubic-bezier(.4,0,.2,1); }
+        .prio-fill.high   { background: var(--danger); box-shadow: 0 0 8px rgba(255,77,77,0.4); }
+        .prio-fill.medium { background: var(--warn);   box-shadow: 0 0 8px rgba(227,179,65,0.4); }
+        .prio-fill.low    { background: var(--success);box-shadow: 0 0 8px rgba(46,160,67,0.4); }
+
+        /* ── TAG CLOUD ── */
+        .tag-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
+        .tag-chip { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid rgba(88,166,255,0.2); color: var(--accent); background: rgba(88,166,255,0.07); transition: all .2s; }
+        .tag-chip:hover { background: rgba(88,166,255,0.15); border-color: rgba(88,166,255,0.45); transform: scale(1.05); }
+        .tag-chip.lg { font-size: 14px; padding: 7px 16px; }
+        .tag-chip.sm { font-size: 10px; padding: 3px 9px; opacity: .65; }
+        .no-data { font-size: 13px; color: var(--muted); font-style: italic; }
+
+        /* ── RECENT TASKS ── */
+        .recent-list { display: flex; flex-direction: column; gap: 9px; }
+        .recent-item { display: flex; align-items: center; gap: 12px; padding: 11px 15px; border-radius: 11px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); transition: all .25s; }
+        .recent-item:hover { background: rgba(255,255,255,0.04); border-color: rgba(88,166,255,0.15); transform: translateX(4px); }
+        .rdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .rdot.high   { background: var(--danger); box-shadow: 0 0 6px rgba(255,77,77,0.5); }
+        .rdot.medium { background: var(--warn);   box-shadow: 0 0 6px rgba(227,179,65,0.5); }
+        .rdot.low    { background: var(--success);box-shadow: 0 0 6px rgba(46,160,67,0.5); }
+        .rtext { flex:1; font-size:13px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .rtext.done { text-decoration: line-through; color: var(--muted); }
+        .rbadge { font-size:10px; font-family:'JetBrains Mono',monospace; padding:2px 7px; border-radius:7px; flex-shrink:0; }
+        .rbadge.done    { background:rgba(46,160,67,0.12);  color:var(--success); border:1px solid rgba(46,160,67,0.25); }
+        .rbadge.pending { background:rgba(227,179,65,0.12); color:var(--warn);    border:1px solid rgba(227,179,65,0.25); }
+        .rdate { font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; flex-shrink:0; }
+
+        /* ── ACCOUNT INFO ── */
+        .info-row { display:flex; justify-content:space-between; align-items:center; padding:13px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:14px; }
+        .info-row:last-child { border-bottom:none; padding-bottom:0; }
+        .info-key { color:var(--muted); font-weight:500; }
+        .info-val { color:var(--text); font-family:'JetBrains Mono',monospace; font-size:12px; text-align:right; }
+
+        /* ── DANGER ZONE ── */
+        .danger-card { background: rgba(255,77,77,0.04); border-radius: 20px; border: 1px solid rgba(255,77,77,0.15); padding: 24px; animation: fadeUp .7s ease .45s both; }
+        .danger-card h3 { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; color:var(--danger); margin-bottom:8px; }
+        .danger-card p  { font-size:13px; color:var(--muted); margin-bottom:18px; line-height:1.6; }
+        .btn-danger { display:inline-flex; align-items:center; gap:8px; padding:10px 20px; border-radius:10px; border:1px solid rgba(255,77,77,0.4); background:transparent; color:var(--danger); font-size:13px; font-weight:600; cursor:pointer; transition:all .25s; font-family:'DM Sans',sans-serif; }
+        .btn-danger:hover { background:rgba(255,77,77,0.1); border-color:var(--danger); transform:translateY(-2px); }
+
+        /* ── FOOTER ── */
+        footer { border-top:1px solid var(--border); padding:40px 60px; text-align:center; color:var(--muted); font-size:13px; position:relative; z-index:10; }
+        footer a { color:var(--accent); text-decoration:none; }
+        footer a:hover { color:var(--text); }
+
+        @media(max-width:860px) {
+            .navbar { padding:16px 20px; } .nav-links { display:none; }
+            .profile-hero { flex-direction:column; text-align:center; }
+            .badges { justify-content:center; }
+            .stats-grid { grid-template-columns:repeat(2,1fr); }
+            .streak-row, .two-col, .three-col { grid-template-columns:1fr; }
+            .profile-page { padding:100px 20px 60px; }
+            footer { padding:30px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<canvas id="blob-canvas"></canvas>
+<div class="noise"></div>
+<div class="tooltip" id="tooltip"></div>
+
+<!-- AUTH GATE -->
+<div id="authGate">
+    <div style="font-size:52px">👤</div>
+    <h2>Sign in to view your profile</h2>
+    <p>Your analytics and account info are only visible when signed in.</p>
+    <a href="login.html" class="gate-btn">Sign In →</a>
+</div>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <a href="index.html" class="nav-logo">
+        <div class="logo-icon">🚀</div> TaskNova
+    </a>
+    <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="tasks.html">Manage Tasks</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="profile.html" class="active">Profile</a></li>
+    </ul>
+    <div class="nav-auth">
+        <a href="profile.html" class="nav-user-chip" id="navUserChip" title="View profile" style="text-decoration:none">
+            <div class="nav-avatar" id="navAvatar">?</div>
+            <span class="nav-username" id="navUsername"></span>
+        </a>
+        <button class="nav-signout-btn" id="navSignOutBtn" style="display:none" onclick="navSignOut()">Sign Out</button>
+        <a href="login.html" class="nav-cta" id="navSignInBtn">Sign In →</a>
+    </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="profile-page" id="profileContent" style="display:none">
+
+    <!-- ── HERO ── -->
+    <div class="profile-hero">
+        <div class="avatar-big" id="heroBigAvatar">?</div>
+        <div class="profile-info">
+            <div class="profile-name" id="heroName">—</div>
+            <div class="profile-email" id="heroEmail">—</div>
+            <div class="badges">
+                <span class="badge badge-green"><span class="badge-dot"></span> Active</span>
+                <span class="badge badge-blue">🚀 TaskNova Member</span>
+                <span class="badge badge-blue" id="streakBadge">🔥 0 day streak</span>
+            </div>
+            <div class="profile-joined" id="heroJoined"></div>
+        </div>
+    </div>
+
+    <!-- ── STREAK CARDS ── -->
+    <div class="sec">Streak & Activity</div>
+    <div class="streak-row">
+        <div class="streak-card fire" style="animation-delay:.05s">
+            <span class="streak-emoji">🔥</span>
+            <div class="streak-num fire-color" id="streakCurrent">0</div>
+            <div class="streak-label">Current Streak (days)</div>
+        </div>
+        <div class="streak-card" style="animation-delay:.10s">
+            <span class="streak-emoji">🏆</span>
+            <div class="streak-num blue-color" id="streakBest">0</div>
+            <div class="streak-label">Best Streak (days)</div>
+        </div>
+        <div class="streak-card" style="animation-delay:.15s">
+            <span class="streak-emoji">📅</span>
+            <div class="streak-num green-color" id="activeDays">0</div>
+            <div class="streak-label">Total Active Days</div>
+        </div>
+    </div>
+
+    <!-- ── STATS ── -->
+    <div class="sec">Task Overview</div>
+    <div class="stats-grid">
+        <div class="stat-card c-total">
+            <span class="stat-icon">📋</span>
+            <div class="stat-value" id="statTotal">0</div>
+            <div class="stat-label">Total Tasks</div>
+        </div>
+        <div class="stat-card c-done">
+            <span class="stat-icon">✅</span>
+            <div class="stat-value" id="statDone">0</div>
+            <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-card c-pending">
+            <span class="stat-icon">⏳</span>
+            <div class="stat-value" id="statPending">0</div>
+            <div class="stat-label">Pending</div>
+        </div>
+        <div class="stat-card c-sched">
+            <span class="stat-icon">🕐</span>
+            <div class="stat-value" id="statSched">0</div>
+            <div class="stat-label">Scheduled</div>
+        </div>
+    </div>
+
+    <!-- ── GRAPHS ROW 1: Donut + Priority bars ── -->
+    <div class="sec">Analytics</div>
+    <div class="two-col">
+        <!-- Donut chart -->
+        <div class="chart-card">
+            <h3>Task Status</h3>
+            <div class="sub">Completed vs pending breakdown</div>
+            <div class="chart-wrap" style="height:180px;display:flex;align-items:center;justify-content:center;">
+                <canvas id="donutChart"></canvas>
+                <div class="donut-center">
+                    <div class="big" id="donutPct">0%</div>
+                    <div class="sm">done</div>
+                </div>
+            </div>
+        </div>
+        <!-- Priority bars -->
+        <div class="prio-card">
+            <h3>Priority Distribution</h3>
+            <div class="sub">How your tasks are spread by urgency</div>
+            <div class="prio-rows">
+                <div class="prio-row">
+                    <div class="prio-row-head">
+                        <span class="prio-row-label">🔴 High Priority</span>
+                        <span class="prio-row-val" id="prioHighVal" style="color:var(--danger)">0</span>
+                    </div>
+                    <div class="prio-track"><div class="prio-fill high" id="prioHighBar"></div></div>
+                </div>
+                <div class="prio-row">
+                    <div class="prio-row-head">
+                        <span class="prio-row-label">⚡ Medium Priority</span>
+                        <span class="prio-row-val" id="prioMedVal" style="color:var(--warn)">0</span>
+                    </div>
+                    <div class="prio-track"><div class="prio-fill medium" id="prioMedBar"></div></div>
+                </div>
+                <div class="prio-row">
+                    <div class="prio-row-head">
+                        <span class="prio-row-label">🟢 Low Priority</span>
+                        <span class="prio-row-val" id="prioLowVal" style="color:var(--success)">0</span>
+                    </div>
+                    <div class="prio-track"><div class="prio-fill low" id="prioLowBar"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── GRAPHS ROW 2: Line trend + Day bar ── -->
+    <div class="two-col">
+        <!-- Line chart: tasks added over last 14 days -->
+        <div class="trend-card" style="margin-bottom:0">
+            <h3>Tasks Added — Last 14 Days</h3>
+            <div class="sub">Your daily task creation trend</div>
+            <canvas id="lineChart" height="120"></canvas>
+        </div>
+        <!-- Bar chart: tasks by day of week -->
+        <div class="chart-card">
+            <h3>Activity by Day of Week</h3>
+            <div class="sub">When you create tasks most</div>
+            <canvas id="dayBarChart" height="120"></canvas>
+        </div>
+    </div>
+
+    <!-- ── ACTIVITY HEATMAP ── -->
+    <div class="heatmap-card" style="margin-top:20px">
+        <h3>Activity Heatmap</h3>
+        <div class="sub">Tasks created in the last 6 months — darker = more active</div>
+        <div class="heatmap-months" id="heatmapMonths"></div>
+        <div class="heatmap-grid" id="heatmapGrid"></div>
+        <div class="heatmap-footer">
+            <span>Less</span>
+            <div class="heatmap-legend">
+                <div class="heatmap-cell"></div>
+                <div class="heatmap-cell" data-c="1"></div>
+                <div class="heatmap-cell" data-c="2"></div>
+                <div class="heatmap-cell" data-c="3"></div>
+                <div class="heatmap-cell" data-c="4"></div>
+            </div>
+            <span>More</span>
+        </div>
+    </div>
+
+    <!-- ── TAG CLOUD + RECENT TASKS ── -->
+    <div class="two-col" style="margin-top:20px">
+        <div class="chart-card">
+            <h3>Your Tags</h3>
+            <div class="sub">Most-used labels — size = frequency</div>
+            <div class="tag-cloud" id="tagCloud"></div>
+        </div>
+        <div class="chart-card">
+            <h3>Recent Tasks</h3>
+            <div class="sub">Your last 5 added tasks</div>
+            <div class="recent-list" id="recentList"></div>
+        </div>
+    </div>
+
+    <!-- ── ACCOUNT INFO ── -->
+    <div class="card" style="margin-top:20px;animation-delay:.35s">
+        <div class="sec">Account Details</div>
+        <div class="info-row"><span class="info-key">👤 Full Name</span><span class="info-val" id="acctName">—</span></div>
+        <div class="info-row"><span class="info-key">📧 Email</span><span class="info-val" id="acctEmail">—</span></div>
+        <div class="info-row"><span class="info-key">🔐 Auth Provider</span><span class="info-val">Email / Password</span></div>
+        <div class="info-row"><span class="info-key">📅 Member Since</span><span class="info-val" id="acctJoined">—</span></div>
+        <div class="info-row"><span class="info-key">🕐 Last Sign In</span><span class="info-val" id="acctLastSign">—</span></div>
+        <div class="info-row"><span class="info-key">💾 Tasks Stored</span><span class="info-val" id="acctStorage">—</span></div>
+    </div>
+
+    <!-- ── DANGER ZONE ── -->
+    <div class="danger-card" style="margin-top:20px">
+        <h3>⚠ Danger Zone</h3>
+        <p>These actions are permanent. Clear all local task data or sign out of your account.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <button class="btn-danger" onclick="clearAllTasks()">🗑️ Clear All Tasks</button>
+            <button class="btn-danger" onclick="navSignOut()">🔓 Sign Out</button>
+        </div>
+    </div>
+
+</main>
+
+<footer id="profileFooter" style="display:none">
+    <p>TaskNova © 2026 &nbsp;|&nbsp; Chitkara University Group Project &nbsp;|&nbsp;
+        <a href="tasks.html">Workspace →</a> &nbsp;|&nbsp; <a href="index.html">Home →</a>
+    </p>
+</footer>
+
+<!-- SUPABASE -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    // ================================================================
+    //  🔧  SUPABASE CONFIG — replace with your credentials
+    //      Supabase Dashboard → Project → Settings → API
+    // ================================================================
+
+    const SUPABASE_URL  = 'https://ejjyhlwbkpnmrytuqgug.supabase.co';         // e.g. https://xyzxyz.supabase.co
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqanlobHdia3BubXJ5dHVxZ3VnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNTAwMDIsImV4cCI6MjA4OTcyNjAwMn0.a-aqOsOWNg1Alt6elXDHju-2XQDtiROazU_MDBa4thA';    // long public anon key
+
+    // ================================================================
+
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    function applyAuthState(session) {
+        const gate    = document.getElementById('authGate');
+        const content = document.getElementById('profileContent');
+        const footer  = document.getElementById('profileFooter');
+        const chip    = document.getElementById('navUserChip');
+        const avatar  = document.getElementById('navAvatar');
+        const uname   = document.getElementById('navUsername');
+        const signOut = document.getElementById('navSignOutBtn');
+        const signIn  = document.getElementById('navSignInBtn');
+
+        if (session && session.user) {
+            gate.classList.add('hidden');
+            content.style.display = 'block';
+            footer.style.display  = 'block';
+
+            const u    = session.user;
+            const meta = u.user_metadata || {};
+            const name = meta.full_name || meta.name || u.email.split('@')[0];
+
+            avatar.textContent = name[0].toUpperCase();
+            uname.textContent  = name;
+            chip.classList.add('show');
+            signOut.style.display = 'block';
+            signIn.style.display  = 'none';
+
+            document.getElementById('heroBigAvatar').textContent = name[0].toUpperCase();
+            document.getElementById('heroName').textContent      = name;
+            document.getElementById('heroEmail').textContent     = u.email;
+            document.getElementById('acctName').textContent      = name;
+            document.getElementById('acctEmail').textContent     = u.email;
+
+            const joined = new Date(u.created_at);
+            const fmtDate = d => d.toLocaleDateString('en-IN',{year:'numeric',month:'long',day:'numeric'});
+            document.getElementById('heroJoined').textContent    = '📅 Member since ' + fmtDate(joined);
+            document.getElementById('acctJoined').textContent    = fmtDate(joined);
+            document.getElementById('acctLastSign').textContent  = u.last_sign_in_at
+                ? new Date(u.last_sign_in_at).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'})
+                : '—';
+
+            buildAnalytics();
+        } else {
+            gate.classList.remove('hidden');
+            content.style.display = 'none';
+            footer.style.display  = 'none';
+            chip.classList.remove('show');
+            signOut.style.display = 'none';
+            signIn.style.display  = 'block';
+        }
+    }
+
+    sb.auth.onAuthStateChange((_e, s) => applyAuthState(s));
+    sb.auth.getSession().then(({ data }) => applyAuthState(data.session));
+    async function navSignOut() { await sb.auth.signOut(); window.location.href = 'login.html'; }
+</script>
+
+<!-- ANALYTICS -->
+<script>
+    // Chart.js global defaults matching the dark theme
+    Chart.defaults.color = 'rgba(240,246,252,0.45)';
+    Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+    Chart.defaults.font.family = "'Space Grotesk', sans-serif";
+
+    let donutChartInst = null, lineChartInst = null, dayBarInst = null;
+
+    function buildAnalytics() {
+        const tasks = JSON.parse(localStorage.getItem('tasknova_tasks') || '[]');
+
+        /* ── BASIC COUNTS ── */
+        const total   = tasks.length;
+        const done    = tasks.filter(t => t.completed).length;
+        const pending = tasks.filter(t => !t.completed).length;
+        const sched   = tasks.filter(t => t.scheduledTime && !t.completed).length;
+        const pct     = total === 0 ? 0 : Math.round((done / total) * 100);
+        const high    = tasks.filter(t => t.priority === 'high').length;
+        const medium  = tasks.filter(t => t.priority === 'medium').length;
+        const low     = tasks.filter(t => t.priority === 'low').length;
+
+        document.getElementById('statTotal').textContent   = total;
+        document.getElementById('statDone').textContent    = done;
+        document.getElementById('statPending').textContent = pending;
+        document.getElementById('statSched').textContent   = sched;
+        document.getElementById('donutPct').textContent    = pct + '%';
+
+        const rawBytes = new Blob([localStorage.getItem('tasknova_tasks') || '']).size;
+        document.getElementById('acctStorage').textContent =
+            total + ' task' + (total !== 1 ? 's' : '') +
+            ' (' + (rawBytes < 1024 ? rawBytes + ' B' : (rawBytes / 1024).toFixed(1) + ' KB') + ')';
+
+        /* ── STREAK CALCULATION ── */
+        buildStreaks(tasks);
+
+        /* ── ANIMATED PRIORITY BARS ── */
+        setTimeout(() => {
+            const maxP = Math.max(high, medium, low, 1);
+            document.getElementById('prioHighVal').textContent = high;
+            document.getElementById('prioMedVal').textContent  = medium;
+            document.getElementById('prioLowVal').textContent  = low;
+            document.getElementById('prioHighBar').style.width = (high   / maxP * 100) + '%';
+            document.getElementById('prioMedBar').style.width  = (medium / maxP * 100) + '%';
+            document.getElementById('prioLowBar').style.width  = (low    / maxP * 100) + '%';
+        }, 200);
+
+        /* ── CHARTS ── */
+        buildDonut(done, pending);
+        buildLineChart(tasks);
+        buildDayBar(tasks);
+        buildHeatmap(tasks);
+        buildTagCloud(tasks);
+        buildRecentList(tasks);
+    }
+
+    /* ── STREAK LOGIC ── */
+    function buildStreaks(tasks) {
+        // Collect unique dates when tasks were CREATED (YYYY-MM-DD)
+        const daySet = new Set();
+        tasks.forEach(t => {
+            if (t.createdAt) daySet.add(t.createdAt.slice(0, 10));
+        });
+        const days = [...daySet].sort();
+
+        // Current streak: count backwards from today
+        let current = 0, best = 0, tmp = 0;
+        const today = new Date(); today.setHours(0,0,0,0);
+
+        // Check consecutive days ending today (or yesterday if no tasks today yet)
+        let check = new Date(today);
+        while (true) {
+            const key = check.toISOString().slice(0, 10);
+            if (daySet.has(key)) { current++; check.setDate(check.getDate() - 1); }
+            else if (current === 0 && check.toDateString() === today.toDateString()) {
+                // No tasks today yet, check from yesterday
+                check.setDate(check.getDate() - 1);
+                const y = check.toISOString().slice(0, 10);
+                if (daySet.has(y)) { current++; check.setDate(check.getDate() - 1); }
+                else break;
+            } else break;
+        }
+
+        // Best streak: scan all days
+        for (let i = 0; i < days.length; i++) {
+            if (i === 0) { tmp = 1; }
+            else {
+                const prev = new Date(days[i - 1]), curr = new Date(days[i]);
+                const diff = (curr - prev) / 86400000;
+                tmp = diff === 1 ? tmp + 1 : 1;
+            }
+            if (tmp > best) best = tmp;
+        }
+
+        document.getElementById('streakCurrent').textContent = current;
+        document.getElementById('streakBest').textContent    = best;
+        document.getElementById('activeDays').textContent    = daySet.size;
+        document.getElementById('streakBadge').textContent   = '🔥 ' + current + ' day streak';
+    }
+
+    /* ── DONUT CHART ── */
+    function buildDonut(done, pending) {
+        if (donutChartInst) { donutChartInst.destroy(); donutChartInst = null; }
+        const ctx = document.getElementById('donutChart').getContext('2d');
+        const total = done + pending;
+        donutChartInst = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'Pending'],
+                datasets: [{
+                    data: total === 0 ? [1, 0] : [done, pending],
+                    backgroundColor: total === 0
+                        ? ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.05)']
+                        : ['rgba(46,160,67,0.75)', 'rgba(88,166,255,0.25)'],
+                    borderColor: total === 0
+                        ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.08)']
+                        : ['rgba(46,160,67,1)', 'rgba(88,166,255,0.5)'],
+                    borderWidth: 2,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                cutout: '72%',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyleWidth: 10, font: { size: 12 } } },
+                    tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} tasks` } }
+                }
+            }
+        });
+    }
+
+    /* ── LINE CHART: last 14 days ── */
+    function buildLineChart(tasks) {
+        if (lineChartInst) { lineChartInst.destroy(); lineChartInst = null; }
+
+        // Build last-14-days date keys
+        const labels = [], addedCounts = [], doneCounts = [];
+        for (let i = 13; i >= 0; i--) {
+            const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0,0,0,0);
+            const key = d.toISOString().slice(0, 10);
+            labels.push(d.toLocaleDateString('en-IN', { day:'numeric', month:'short' }));
+            addedCounts.push(tasks.filter(t => t.createdAt && t.createdAt.slice(0,10) === key).length);
+            doneCounts.push(0); // completion date not tracked, skipping for clarity
+        }
+
+        const ctx = document.getElementById('lineChart').getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, 0, 120);
+        grad.addColorStop(0, 'rgba(88,166,255,0.35)');
+        grad.addColorStop(1, 'rgba(88,166,255,0)');
+
+        lineChartInst = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Tasks Added',
+                    data: addedCounts,
+                    borderColor: 'rgba(88,166,255,0.9)',
+                    backgroundColor: grad,
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(88,166,255,1)',
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { maxRotation: 0, font: { size: 10 }, maxTicksLimit: 7 } },
+                    y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { stepSize: 1, font: { size: 10 } }, beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    /* ── DAY OF WEEK BAR ── */
+    function buildDayBar(tasks) {
+        if (dayBarInst) { dayBarInst.destroy(); dayBarInst = null; }
+        const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        const counts = [0,0,0,0,0,0,0];
+        tasks.forEach(t => { if (t.createdAt) counts[new Date(t.createdAt).getDay()]++; });
+
+        const ctx = document.getElementById('dayBarChart').getContext('2d');
+        dayBarInst = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: days,
+                datasets: [{
+                    label: 'Tasks',
+                    data: counts,
+                    backgroundColor: counts.map((_, i) => {
+                        const today = new Date().getDay();
+                        return i === today ? 'rgba(88,166,255,0.85)' : 'rgba(88,166,255,0.25)';
+                    }),
+                    borderColor: counts.map((_, i) => i === new Date().getDay() ? 'rgba(88,166,255,1)' : 'rgba(88,166,255,0.4)'),
+                    borderWidth: 1.5,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                    y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { stepSize: 1, font: { size: 10 } }, beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    /* ── ACTIVITY HEATMAP (last 26 weeks) ── */
+    function buildHeatmap(tasks) {
+        const dayMap = {};
+        tasks.forEach(t => {
+            if (t.createdAt) {
+                const k = t.createdAt.slice(0, 10);
+                dayMap[k] = (dayMap[k] || 0) + 1;
+            }
+        });
+
+        const WEEKS = 26;
+        const today = new Date(); today.setHours(0,0,0,0);
+        // Go back to last Sunday
+        const start = new Date(today);
+        start.setDate(today.getDate() - today.getDay() - (WEEKS - 1) * 7);
+
+        const grid    = document.getElementById('heatmapGrid');
+        const months  = document.getElementById('heatmapMonths');
+        grid.innerHTML = '';
+        months.innerHTML = '';
+
+        const tooltip  = document.getElementById('tooltip');
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        let lastMonth = -1;
+        const monthPositions = [];
+
+        const maxCount = Math.max(...Object.values(dayMap), 1);
+
+        for (let w = 0; w < WEEKS; w++) {
+            const col = document.createElement('div');
+            col.className = 'heatmap-week';
+            for (let d = 0; d < 7; d++) {
+                const date = new Date(start);
+                date.setDate(start.getDate() + w * 7 + d);
+                const key = date.toISOString().slice(0, 10);
+                const count = dayMap[key] || 0;
+                const level = count === 0 ? 0 : count <= maxCount * .25 ? 1 : count <= maxCount * .5 ? 2 : count <= maxCount * .75 ? 3 : 4;
+
+                const cell = document.createElement('div');
+                cell.className = 'heatmap-cell';
+                if (level > 0) cell.setAttribute('data-c', level);
+                cell.addEventListener('mouseenter', e => {
+                    tooltip.style.display = 'block';
+                    tooltip.textContent = key + ': ' + count + ' task' + (count !== 1 ? 's' : '');
+                });
+                cell.addEventListener('mousemove', e => {
+                    tooltip.style.left = (e.clientX + 12) + 'px';
+                    tooltip.style.top  = (e.clientY - 28) + 'px';
+                });
+                cell.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+
+                if (d === 0) {
+                    const m = date.getMonth();
+                    if (m !== lastMonth) { monthPositions.push({ w, name: monthNames[m] }); lastMonth = m; }
+                }
+                col.appendChild(cell);
+            }
+            grid.appendChild(col);
+        }
+
+        // Month labels
+        months.style.paddingLeft = '0';
+        months.innerHTML = '';
+        for (let i = 0; i < monthPositions.length; i++) {
+            const span = document.createElement('span');
+            const gap  = i === 0 ? monthPositions[0].w : monthPositions[i].w - monthPositions[i-1].w;
+            span.style.paddingLeft = (gap * 18) + 'px';
+            if (i === 0) span.style.paddingLeft = (monthPositions[0].w * 18) + 'px';
+            span.textContent = monthPositions[i].name;
+            months.appendChild(span);
+        }
+    }
+
+    /* ── TAG CLOUD ── */
+    function buildTagCloud(tasks) {
+        const counts = {};
+        tasks.forEach(t => (t.tags||[]).forEach(tag => { if(tag) counts[tag] = (counts[tag]||0)+1; }));
+        const entries  = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+        const container = document.getElementById('tagCloud');
+        if (entries.length === 0) { container.innerHTML = '<span class="no-data">No tags yet.</span>'; return; }
+        const max = entries[0][1];
+        container.innerHTML = '';
+        entries.slice(0, 20).forEach(([tag, count]) => {
+            const r = count / max;
+            const chip = document.createElement('span');
+            chip.className = 'tag-chip ' + (r >= .7 ? 'lg' : r < .35 ? 'sm' : '');
+            chip.textContent = tag + (count > 1 ? ' ×' + count : '');
+            container.appendChild(chip);
+        });
+    }
+
+    /* ── RECENT TASKS ── */
+    function buildRecentList(tasks) {
+        const container = document.getElementById('recentList');
+        const recent = [...tasks].slice(0, 5);
+        if (recent.length === 0) { container.innerHTML = '<div class="no-data" style="padding:20px 0">No tasks yet.</div>'; return; }
+        container.innerHTML = '';
+        recent.forEach(t => {
+            const item = document.createElement('div');
+            item.className = 'recent-item';
+            item.innerHTML = `
+                <div class="rdot ${t.priority}"></div>
+                <span class="rtext ${t.completed?'done':''}">${escHtml(t.text)}</span>
+                ${t.scheduledTime ? `<span class="rdate">${new Date(t.scheduledTime).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</span>` : ''}
+                <span class="rbadge ${t.completed?'done':'pending'}">${t.completed?'✓ Done':'⏳'}</span>`;
+            container.appendChild(item);
+        });
+    }
+
+    function clearAllTasks() {
+        if (!confirm('Delete ALL tasks permanently?')) return;
+        localStorage.removeItem('tasknova_tasks');
+        buildAnalytics();
+    }
+    function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+
+<!-- BLOB + CURSOR -->
+<script>
+    const canvas = document.getElementById('blob-canvas'), ctx = canvas.getContext('2d');
+    let W, H, mouse = {x:-500,y:-500}, blobT = 0;
+    function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+    resize(); window.addEventListener('resize', resize);
+    window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+    class Blob {
+        constructor(x,y,r,color,speed,pts){this.cx=x;this.cy=y;this.baseR=r;this.color=color;this.speed=speed;this.pts=pts;this.noiseOffsets=Array.from({length:pts},()=>Math.random()*1000);}
+        noise(x,y){const X=Math.floor(x)&255,Y=Math.floor(y)&255;return(Math.sin(X*127.1+Y*311.7)*.5+.5+Math.sin(X*269.5+Y*183.3)*.25+.25)*.5;}
+        draw(t,m){
+            ctx.beginPath();const step=(Math.PI*2)/this.pts;
+            for(let i=0;i<=this.pts;i++){const a=i*step,n=this.noise(Math.cos(a)+this.noiseOffsets[i%this.pts]+t*this.speed*.3,Math.sin(a)+this.noiseOffsets[i%this.pts]+t*this.speed*.3);
+            const r=this.baseR*(0.75+n*0.5),dx=(this.cx+Math.cos(a)*r)-m.x,dy=(this.cy+Math.sin(a)*r)-m.y;
+            const dist=Math.sqrt(dx*dx+dy*dy),repel=dist<180?(180-dist)/180*30:0;
+            const x=this.cx+Math.cos(a)*(r+repel),y=this.cy+Math.sin(a)*(r+repel);
+            i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+            ctx.closePath();ctx.fillStyle=this.color;ctx.fill();
+        }
+    }
+    let blobs=[];
+    function initBlobs(){blobs=[];blobs.push(new Blob(W*.15,H*.4,Math.min(W,H)*.32,'rgba(31,111,235,0.1)',0.4,8));blobs.push(new Blob(W*.85,H*.3,Math.min(W,H)*.28,'rgba(88,166,255,0.07)',0.35,9));blobs.push(new Blob(W*.55,H*.8,Math.min(W,H)*.24,'rgba(163,113,247,0.09)',0.5,8));}
+    initBlobs();window.addEventListener('resize',initBlobs);
+    function animBlobs(){ctx.clearRect(0,0,W,H);blobT+=0.008;blobs.forEach(b=>b.draw(blobT,mouse));requestAnimationFrame(animBlobs);}
+    animBlobs();
+    const cursorEl=document.getElementById('cursor'),ringEl=document.getElementById('cursor-ring');
+    let cx=0,cy=0,rx=0,ry=0;
+    document.addEventListener('mousemove',e=>{cx=e.clientX;cy=e.clientY;cursorEl.style.left=cx+'px';cursorEl.style.top=cy+'px';});
+    (function animCursor(){rx+=(cx-rx)*.12;ry+=(cy-ry)*.12;ringEl.style.left=rx+'px';ringEl.style.top=ry+'px';requestAnimationFrame(animCursor);})();
+</script>
+</body>
+</html>
