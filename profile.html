@@ -446,8 +446,10 @@
     //  🔧  SUPABASE CONFIG — replace with your credentials
     //      Supabase Dashboard → Project → Settings → API
     // ================================================================
-    const SUPABASE_URL  = 'YOUR_SUPABASE_URL';
-    const SUPABASE_ANON = 'YOUR_SUPABASE_ANON_KEY';
+
+    const SUPABASE_URL  = 'https://ejjyhlwbkpnmrytuqgug.supabase.co';         // e.g. https://xyzxyz.supabase.co
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqanlobHdia3BubXJ5dHVxZ3VnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNTAwMDIsImV4cCI6MjA4OTcyNjAwMn0.a-aqOsOWNg1Alt6elXDHju-2XQDtiROazU_MDBa4thA';    // long public anon key
+
     // ================================================================
 
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
