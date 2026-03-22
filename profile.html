@@ -446,9 +446,9 @@
     //  🔧  SUPABASE CONFIG — replace with your credentials
     //      Supabase Dashboard → Project → Settings → API
     // ================================================================
-
     const SUPABASE_URL  = 'https://ejjyhlwbkpnmrytuqgug.supabase.co';         // e.g. https://xyzxyz.supabase.co
     const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqanlobHdia3BubXJ5dHVxZ3VnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNTAwMDIsImV4cCI6MjA4OTcyNjAwMn0.a-aqOsOWNg1Alt6elXDHju-2XQDtiROazU_MDBa4thA';    // long public anon key
+
 
     // ================================================================
 
@@ -580,26 +580,26 @@
 
     /* ── STREAK LOGIC ── */
     function buildStreaks(tasks) {
-        // Collect unique dates when tasks were CREATED (YYYY-MM-DD)
+        // Collect unique LOCAL dates when tasks were created
         const daySet = new Set();
         tasks.forEach(t => {
-            if (t.createdAt) daySet.add(t.createdAt.slice(0, 10));
+            if (t.createdAt) daySet.add(localDateKey(t.createdAt));
         });
         const days = [...daySet].sort();
 
-        // Current streak: count backwards from today
+        // Current streak: count backwards from today (local date)
         let current = 0, best = 0, tmp = 0;
         const today = new Date(); today.setHours(0,0,0,0);
 
         // Check consecutive days ending today (or yesterday if no tasks today yet)
         let check = new Date(today);
         while (true) {
-            const key = check.toISOString().slice(0, 10);
+            const key = localDateKey(check);
             if (daySet.has(key)) { current++; check.setDate(check.getDate() - 1); }
             else if (current === 0 && check.toDateString() === today.toDateString()) {
                 // No tasks today yet, check from yesterday
                 check.setDate(check.getDate() - 1);
-                const y = check.toISOString().slice(0, 10);
+                const y = localDateKey(check);
                 if (daySet.has(y)) { current++; check.setDate(check.getDate() - 1); }
                 else break;
             } else break;
@@ -656,17 +656,29 @@
     }
 
     /* ── LINE CHART: last 14 days ── */
+
+    // Converts any date/string to a local-timezone YYYY-MM-DD key.
+    // Using toISOString() gives UTC dates which breaks for IST (UTC+5:30)
+    // and any timezone that's ahead of UTC — tasks added "today" locally
+    // could appear as "yesterday" in UTC before 05:30 AM IST.
+    function localDateKey(d) {
+        const dt = (d instanceof Date) ? d : new Date(d);
+        const y  = dt.getFullYear();
+        const m  = String(dt.getMonth() + 1).padStart(2, '0');
+        const day = String(dt.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+
     function buildLineChart(tasks) {
         if (lineChartInst) { lineChartInst.destroy(); lineChartInst = null; }
 
-        // Build last-14-days date keys
-        const labels = [], addedCounts = [], doneCounts = [];
+        // Build last-14-days date keys using LOCAL timezone
+        const labels = [], addedCounts = [];
         for (let i = 13; i >= 0; i--) {
             const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0,0,0,0);
-            const key = d.toISOString().slice(0, 10);
+            const key = localDateKey(d);
             labels.push(d.toLocaleDateString('en-IN', { day:'numeric', month:'short' }));
-            addedCounts.push(tasks.filter(t => t.createdAt && t.createdAt.slice(0,10) === key).length);
-            doneCounts.push(0); // completion date not tracked, skipping for clarity
+            addedCounts.push(tasks.filter(t => t.createdAt && localDateKey(t.createdAt) === key).length);
         }
 
         const ctx = document.getElementById('lineChart').getContext('2d');
@@ -742,7 +754,7 @@
         const dayMap = {};
         tasks.forEach(t => {
             if (t.createdAt) {
-                const k = t.createdAt.slice(0, 10);
+                const k = localDateKey(t.createdAt);
                 dayMap[k] = (dayMap[k] || 0) + 1;
             }
         });
@@ -771,7 +783,7 @@
             for (let d = 0; d < 7; d++) {
                 const date = new Date(start);
                 date.setDate(start.getDate() + w * 7 + d);
-                const key = date.toISOString().slice(0, 10);
+                const key = localDateKey(date);
                 const count = dayMap[key] || 0;
                 const level = count === 0 ? 0 : count <= maxCount * .25 ? 1 : count <= maxCount * .5 ? 2 : count <= maxCount * .75 ? 3 : 4;
 
